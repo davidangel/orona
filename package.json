@@ -31,4 +31,9 @@
   "devDependencies": {
     "decaffeinate": "^8.1.4"
   }
+  ,
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "bn.js": "5.2.3"
+  }
 }
