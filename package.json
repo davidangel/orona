@@ -18,10 +18,12 @@
   "dependencies": {
     "browserify": "^17.0.0",
     "coffeescript": "^2.7.0",
-    "connect": "^2.30.2",
+    "connect": "^3.7.0",
     "faye-websocket": "^0.11.0",
     "irc": "^0.5.2",
-    "villain": "^0.2.0"
+    "villain": "^0.2.0",
+    "morgan": "^1.10.0",
+    "serve-static": "^1.15.0"
   },
   "bin": {
     "bolo-server": "./bin/bolo-server"

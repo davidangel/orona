@@ -362,11 +362,13 @@ class Application {
     const webroot = path.join(path.dirname(fs.realpathSync(__filename)), '../../');
 
       this.connectServer = connect();
-    if (this.options.web != null ? this.options.web.log : undefined) {
-      this.connectServer.use('/', connect.logger());
-    }
-    this.connectServer.use('/', redirector(this.options.general.base));
-    this.connectServer.use('/', connect.static(webroot));
+      if (this.options.web != null ? this.options.web.log : undefined) {
+        const morgan = require('morgan');
+        this.connectServer.use(morgan('dev'));
+      }
+      this.connectServer.use('/', redirector(this.options.general.base));
+      const serveStatic = require('serve-static');
+      this.connectServer.use('/', serveStatic(webroot));
 
     this.games = {};
     this.ircClients = [];
