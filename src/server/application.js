@@ -422,6 +422,7 @@ class Application {
     game.gid = gid;
     game.url = `${this.options.general.base}/match/${gid}`;
     console.log(`Created game '${gid}'`);
+    console.log(`URL: http://localhost:${this.options.web.port}?${gid}`);
     this.startLoop();
 
     return game;
