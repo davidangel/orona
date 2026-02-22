@@ -28,7 +28,7 @@ class Common2dRenderer extends BaseRenderer {
       throw `Could not initialize 2D canvas: ${e.message}`;
     }
 
-    // We need to get the raw pixel data from the overlay.
+  // We need to get the raw pixel data from the overlay.
     const img = this.images.overlay;
     // Create a temporary canvas.
     const temp = $('<canvas/>')[0];
@@ -48,6 +48,9 @@ class Common2dRenderer extends BaseRenderer {
 
   // We use an extra parameter `ctx` here, so that the offscreen renderer can
   // use the context specific to segments.
+  setObjectOpacity(opacity) {
+    this.ctx.globalAlpha = opacity;
+  }
   drawTile(tx, ty, dx, dy, ctx) {
     return (ctx || this.ctx).drawImage(this.images.base,
       tx * TILE_SIZE_PIXELS, ty * TILE_SIZE_PIXELS, TILE_SIZE_PIXELS, TILE_SIZE_PIXELS,
@@ -148,8 +151,10 @@ class Common2dRenderer extends BaseRenderer {
     const {
       player
     } = this.world;
+    let x, y;
     for (var tank of Array.from(this.world.tanks)) {
-      if (tank.name && (tank.armour !== 255) && (tank !== player)) {var x, y;
+      if (tank.name && (tank.armour !== 255) && (tank !== player)) {
+        if (!this.isVisibleToPlayer(tank)) { continue; }
       
         if (player) {
           var dist;

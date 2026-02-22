@@ -27,6 +27,7 @@ class BaseRenderer {
     this.world = world;
     this.images = this.world.images;
     this.soundkit = this.world.soundkit;
+    this.opacityState = {};
 
     this.canvas = $('<canvas/>').appendTo('body');
     this.lastCenter = this.world.map.findCenterCell().getWorldCoordinates();
@@ -43,6 +44,27 @@ class BaseRenderer {
 
   // Subclasses use this as their constructor.
   setup() {}
+
+  // Check if an object should be visible to the player.
+  // Enemy tanks in forest tiles are hidden from view, unless within 2 tiles.
+  isVisibleToPlayer(obj) {
+    const player = this.world.player;
+    if (!player) { 
+      this._hasPlayer = false;
+      return true; 
+    }
+    this._hasPlayer = true;
+    if (obj === player) { return true; }
+    if (obj.team === 255) { return true; }
+    if (obj.isAlly == null) { return true; }
+    if (obj.isAlly(player)) { return true; }
+    if (obj.cell && obj.cell.isType('#')) {
+      const dist = Math.sqrt((obj.x - player.x) ** 2 + (obj.y - player.y) ** 2);
+      const TILE_DIST_THRESHOLD = 2 * TILE_SIZE_WORLD;
+      if (dist > TILE_DIST_THRESHOLD) { return false; }
+    }
+    return true;
+  }
 
   // This methods takes x and y coordinates to center the screen on. The callback provided should be
   // invoked exactly once. Any drawing operations used from within the callback will have a
@@ -95,12 +117,36 @@ class BaseRenderer {
       this.drawMap(left, top, width, height);
       for (var obj of Array.from(this.world.objects)) {
         if ((obj.styled != null) && (obj.x != null) && (obj.y != null)) {
+          const shouldBeVisible = this.isVisibleToPlayer(obj);
+          
+          // Initialize opacity if needed
+          if (this.opacityState[obj.idx] === undefined) {
+            this.opacityState[obj.idx] = shouldBeVisible ? 1 : 0;
+          }
+          
+          // Fade in/out
+          if (shouldBeVisible) {
+            this.opacityState[obj.idx] = Math.min(1, this.opacityState[obj.idx] + (1 / 30));
+          } else {
+            this.opacityState[obj.idx] = Math.max(0, this.opacityState[obj.idx] - (1 / 30));
+          }
+          
+          if (this.opacityState[obj.idx] <= 0) { continue; }
+          
+          if (this.opacityState[obj.idx] < 1) {
+            this.setObjectOpacity(this.opacityState[obj.idx]);
+          }
+          
           var [tx, ty] = Array.from(obj.getTile());
           var ox = round(obj.x / PIXEL_SIZE_WORLD) - (TILE_SIZE_PIXELS / 2);
           var oy = round(obj.y / PIXEL_SIZE_WORLD) - (TILE_SIZE_PIXELS / 2);
           switch (obj.styled) {
             case true:  this.drawStyledTile(tx, ty, obj.team, ox, oy); break;
             case false: this.drawTile(tx, ty, ox, oy); break;
+          }
+          
+          if (this.opacityState[obj.idx] < 1) {
+            this.setObjectOpacity(1);
           }
         }
       }
