@@ -94,7 +94,7 @@ class BoloServerWorld extends ServerWorld {
     // receives create messages for those, and then fills the map structure based on those.
     // The client expects this as a separate message.
     let packet = this.map.dump({noPills: true, noBases: true});
-    packet = new Buffer(packet).toString('base64');
+    packet = Buffer.from(packet).toString('base64');
     ws.send(packet);
 
     // To synchronize the object list to the client, we simulate creation of all objects.
@@ -104,7 +104,7 @@ class BoloServerWorld extends ServerWorld {
       packet = packet.concat([net.CREATE_MESSAGE, obj._net_type_idx]);
     }
     packet = packet.concat([net.UPDATE_MESSAGE], this.dumpTick(true));
-    packet = new Buffer(packet).toString('base64');
+    packet = Buffer.from(packet).toString('base64');
     ws.send(packet);
 
     // Synchronize all player names.
@@ -114,7 +114,7 @@ class BoloServerWorld extends ServerWorld {
     ws.send(messages);
 
     // Finish with a 'sync' message.
-    packet = new Buffer([net.SYNC_MESSAGE]).toString('base64');
+    packet = Buffer.from([net.SYNC_MESSAGE]).toString('base64');
     return ws.send(packet);
   }
 
@@ -210,7 +210,7 @@ class BoloServerWorld extends ServerWorld {
 
     ws.tank = this.spawn(Tank, message.team);
     let packet = this.changesPacket(true);
-    packet = new Buffer(packet).toString('base64');
+    packet = Buffer.from(packet).toString('base64');
     this.broadcast(packet);
 
     ws.tank.name = message.name;
@@ -222,7 +222,7 @@ class BoloServerWorld extends ServerWorld {
     );
 
     packet = pack('BH', net.WELCOME_MESSAGE, ws.tank.idx);
-    packet = new Buffer(packet).toString('base64');
+    packet = Buffer.from(packet).toString('base64');
     return ws.send(packet);
   }
 
@@ -268,13 +268,13 @@ class BoloServerWorld extends ServerWorld {
     let largePacket, smallPacket;
     if (this.oddTick = !this.oddTick) {
       smallPacket = this.changesPacket(true);
-      smallPacket = new Buffer(smallPacket).toString('base64');
+      smallPacket = Buffer.from(smallPacket).toString('base64');
       largePacket = smallPacket;
     } else {
       smallPacket = this.changesPacket(false);
       largePacket = smallPacket.concat(this.updatePacket());
-      smallPacket = new Buffer(smallPacket).toString('base64');
-      largePacket = new Buffer(largePacket).toString('base64');
+      smallPacket = Buffer.from(smallPacket).toString('base64');
+      largePacket = Buffer.from(largePacket).toString('base64');
     }
 
     return (() => {

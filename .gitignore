@@ -1,5 +1,4 @@
 /node_modules/*
-!/node_modules/villain
 /js/bolo-bundle.js
 /bolo.manifest
 *.gz

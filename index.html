@@ -12,7 +12,7 @@
 <script src="js/bolo-bundle.js"></script>
 <script>
 $(function() {
-  var World = (typeof require === 'function') ? require('./src/client') : window.World;
+  var World = (typeof window !== 'undefined' && window.World) ? window.World : ((typeof require === 'function') ? require('./src/client') : undefined);
   world = new World();
   world.start();
 });

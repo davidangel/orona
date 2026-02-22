@@ -45,7 +45,7 @@ exports.run = function() {
 
   const app = createBoloApp(config);
   app.listen(config.web.port);
-  puts(`Bolo server listening on port ${config.web.port}.`);
+  puts(`Bolo server started: http://localhost:${config.web.port}/`);
 
   if (config.irc) {
     for (var link in config.irc) {
