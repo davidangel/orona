@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+*.log
+.git
+.env
+.DS_Store
+maps/*.olv
+maps/*.bzm
+js/bolo-bundle.js

@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    ports:
+      - 8124:8124
+    volumes:
+      - ./maps:/app/maps:ro
+      - ./config.json:/app/config.json:ro
+    restart: unless-stopped

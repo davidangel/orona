@@ -14,7 +14,7 @@
   },
   "scripts": {
     "server": "node ./bin/bolo-server config.json",
-    "build": "npx browserify src/client/index.js -s World -o js/bolo-bundle.js"
+    "build": "node node_modules/browserify/bin/cmd.js src/client/index.js -s World -o js/bolo-bundle.js"
   },
   "engines": {
     "node": ">=14"
