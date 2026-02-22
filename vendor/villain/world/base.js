@@ -1,4 +1,11 @@
-// BaseWorld
+/*
+ * decaffeinate suggestions:
+ * DS101: Remove unnecessary use of Array.from
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS202: Simplify dynamic range loops
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/main/docs/suggestions.md
+ */
+//# BaseWorld
 
 // An instance of `World` represents the game world. It's a container that keeps track of everything
 // happening in the game simulation. The `BaseWorld` class is the base class of the different kinds
