@@ -4,8 +4,11 @@ services:
   server:
     build: .
     ports:
-      - 8124:8124
+      - "${PORT:-8124}:8124"
+    environment:
+      - BASE_URL=${BASE_URL:-http://localhost:8124}
+      - PORT=${PORT:-8124}
+      - MAXGAMES=${MAXGAMES:-5}
     volumes:
       - ./maps:/app/maps:ro
-      - ./config.json:/app/config.json:ro
     restart: unless-stopped

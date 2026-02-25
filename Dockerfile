@@ -9,6 +9,8 @@ COPY . .
 
 RUN npm run build
 
+RUN chmod +x docker-entrypoint.sh
+
 EXPOSE 8124
 
-CMD ["npm", "run", "server"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

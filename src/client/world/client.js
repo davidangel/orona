@@ -25,7 +25,7 @@ const JOIN_DIALOG_TEMPLATE = `\
 <div id="join-dialog">
   <div>
     <p>What is your name?</p>
-    <p><input type="text" id="join-nick-field" name="join-nick-field" maxlength=20></input></p>
+    <p style="margin: 8px 0;"><input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 style="margin: 8px 0;"></input></p>
   </div>
   <div id="join-team">
     <p>Choose a side:</p>
@@ -38,6 +38,19 @@ const JOIN_DIALOG_TEMPLATE = `\
   </div>
   <div>
     <p><input type="button" name="join-submit" id="join-submit" value="Join game"></input></p>
+  </div>
+</div>\
+`;
+
+const LAUNCH_TEMPLATE = `\
+<div id="launch-dialog">
+  <div>
+    <p>Create a new game, or join with a 6-digit hex code.</p>
+  </div>
+  <div>
+    <p><input type="text" id="join-code-field" name="join-code-field" style="margin: 8px 0;" maxlength=6 placeholder="e.g. a3f1c9"></input></p>
+    <p><input type="button" id="join-code-submit" value="Join"></input>
+       <input type="button" id="create-game-submit" value="Create Game"></input></p>
   </div>
 </div>\
 `;
@@ -66,21 +79,50 @@ class BoloClientWorld extends ClientWorld {
     this.vignette.message('Connecting to the multiplayer game');
     this.heartbeatTimer = 0;
 
-    if (m = /^\?([a-z]{20})$/.exec(location.search)) {
+    // If a 6-digit hex id is present in the querystring, connect to that match.
+    if (m = /^\?([0-9a-f]{6})$/.exec(location.search)) {
       path = `/match/${m[1]}`;
-    } else if (location.search) {
-      return this.vignette.message('Invalid game ID');
-    } else {
-      path = "/demo";
+      this.ws = new WebSocket(`ws://${location.host}${path}`);
+      const ws = $(this.ws);
+      ws.one('open.bolo', () => { return this.connected(); });
+      ws.one('close.bolo', () => { return this.failure('Connection lost'); });
+      return;
     }
-    this.ws = new WebSocket(`ws://${location.host}${path}`);
-    const ws = $(this.ws);
-    ws.one('open.bolo', () => {
-      return this.connected();
-    });
-    return ws.one('close.bolo', () => {
-      return this.failure('Connection lost');
-    });
+
+    // If an invalid querystring exists, show message.
+    if (location.search) { return this.vignette.message('Invalid game ID'); }
+
+    // Otherwise present a launch dialog allowing create/join by code.
+    this.vignette.message('Choose Create or Join');
+    this.launchDialog = $(LAUNCH_TEMPLATE).dialog({dialogClass: 'unclosable'});
+    this.launchDialog
+      .find('#join-code-field')
+        .focus()
+        .keydown(e => { if (e.which === 13) { this.launchJoin(); } })
+      .end()
+      .find('#join-code-submit')
+        .button()
+        .click(() => { return this.launchJoin(); })
+      .end()
+      .find('#create-game-submit')
+        .button()
+        .click(() => { return this.launchCreate(); });
+  }
+
+  launchJoin() {
+    const code = (this.launchDialog.find('#join-code-field').val() || '').toLowerCase();
+    if (!/^[0-9a-f]{6}$/.test(code)) { return this.vignette.message('Invalid code'); }
+    // Navigate to the game query param; reload will trigger the websocket connect.
+    return location.search = `?${code}`;
+  }
+
+  launchCreate() {
+    this.vignette.message('Creating game...');
+    // Call server /create endpoint to create a game and receive gid.
+    return fetch('/create').then(res => res.json()).then(data => {
+      if (data && data.gid) { location.search = `?${data.gid}`; }
+      else { this.vignette.message('Create failed'); }
+    }).catch(() => { return this.vignette.message('Create failed'); });
   }
 
   connected() {

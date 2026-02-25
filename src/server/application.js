@@ -367,6 +367,38 @@ class Application {
         this.connectServer.use(morgan('dev'));
       }
       this.connectServer.use('/', redirector(this.options.general.base));
+
+      // Endpoint to create a new game and return its id. Simple GET used by the client UI.
+      this.connectServer.use('/create', (req, res, next) => {
+        if (req.method !== 'GET') { return next(); }
+        // Pick the first available map (fallback to demo map if available)
+        const names = Object.getOwnPropertyNames(this.maps.nameIndex);
+        let mapDescr = null;
+        if (names.length > 0) { mapDescr = this.maps.nameIndex[names[0]]; }
+        if (!mapDescr && this.demo) {
+          // If we have a demo, use its map
+          try {
+            const packet = this.demo.map.dump({noPills: true, noBases: true});
+            const mapData = Buffer.from(packet);
+            const game = this.createGame(mapData);
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({ gid: game.gid, url: game.url }));
+            return;
+          } catch (e) {
+            res.writeHead(500);
+            res.end('error');
+            return;
+          }
+        }
+        if (!mapDescr) { res.writeHead(500); res.end('no maps'); return; }
+        return fs.readFile(mapDescr.path, (err, data) => {
+          if (err) { res.writeHead(500); res.end('error'); return; }
+          const game = this.createGame(data);
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ gid: game.gid, url: game.url }));
+        });
+      });
+
       const serveStatic = require('serve-static');
       this.connectServer.use('/', serveStatic(webroot));
 
@@ -402,12 +434,11 @@ class Application {
   }
 
   createGameId() {
+    // Generate a 6-digit lowercase hex id (e.g. 'a3f1c9') that's unique among games.
     let gid;
-    const charset = 'abcdefghijklmnopqrstuvwxyz';
+    const charset = '0123456789abcdef';
     while (true) {
-      gid = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((i) =>
-        charset.charAt(round(random() * (charset.length - 1))));
-      gid = gid.join('');
+      gid = Array.from({length: 6}).map(() => charset.charAt(round(random() * (charset.length - 1)))).join('');
       if (!this.games.hasOwnProperty(gid)) { break; }
     }
     return gid;
@@ -487,7 +518,7 @@ class Application {
     if (path === '/lobby') { return false;
 
     // FIXME: Match joining based on a UUID.
-    } else if ((m = /^\/match\/([a-z]{20})$/.exec(path))) {
+    } else if ((m = /^\/match\/([0-9a-f]{6})$/.exec(path))) {
       if (this.games.hasOwnProperty(m[1])) {
         return ws => this.games[m[1]].onConnect(ws);
       } else {
@@ -519,7 +550,7 @@ class Application {
 // Helper middleware to redirect from '/match/*'.
 var redirector = base => (function(req, res, next) {
   let m, query;
-  if (m = /^\/match\/([a-z]{20})$/.exec(req.url)) {
+  if (m = /^\/match\/([0-9a-f]{6})$/.exec(req.url)) {
     query = `?${m[1]}`;
   } else {
     return next();
