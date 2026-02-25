@@ -46,7 +46,7 @@ class Tank extends BoloObject {
   anySpawn() {
     this.updateCell();
     this.world.addTank(this);
-    this.setMaxListeners(20);
+    this.setMaxListeners(50);
     if (!this._finalizeListenerAdded) {
       this._finalizeListenerAdded = true;
       this.on('finalize', () => this.world.removeTank(this));
