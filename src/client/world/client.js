@@ -82,7 +82,8 @@ class BoloClientWorld extends ClientWorld {
     // If a 6-digit hex id is present in the querystring, connect to that match.
     if (m = /^\?([0-9a-f]{6})$/.exec(location.search)) {
       path = `/match/${m[1]}`;
-      this.ws = new WebSocket(`ws://${location.host}${path}`);
+      const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      this.ws = new WebSocket(`${wsProtocol}//${location.host}${path}`);
       const ws = $(this.ws);
       ws.one('open.bolo', () => { return this.connected(); });
       ws.one('close.bolo', () => { return this.failure('Connection lost'); });
