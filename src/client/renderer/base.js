@@ -352,9 +352,9 @@ To see multiplayer in action, follow instructions on Github.\
     }
 
     if ((location.hostname.split('.')[1] === 'github') || (location.hostname.substr(-6) === '.no.de')) {
-      return $('<a href="http://github.com/stephank/orona"></a>')
+      return $('<a href="https://github.com/stephank/orona"></a>')
         .css({'position': 'absolute', 'top': '0px', 'right': '0px'})
-        .html('<img src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">')
+        .html('<img src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">')
         .appendTo(this.hud);
     }
   }
