@@ -54,8 +54,8 @@ class SoundKit {
       this._audioCache[name].preload = 'auto';
       this._audioCache[name].load();
     }
-    const sound = this._audioCache[name];
-    sound.currentTime = 0;
+    // Clone the audio to allow overlapping sounds
+    const sound = this._audioCache[name].cloneNode();
     sound.play();
     return sound;
   }
