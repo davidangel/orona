@@ -9,6 +9,4 @@ services:
       - BASE_URL=${BASE_URL:-http://localhost:8124}
       - PORT=${PORT:-8124}
       - MAXGAMES=${MAXGAMES:-5}
-    volumes:
-      - ./maps:/app/maps:ro
     restart: unless-stopped

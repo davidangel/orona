@@ -17,4 +17,9 @@ if [ ! -f /app/config.json ]; then
 EOF
 fi
 
+# Create default maps directory if it doesn't exist (for when volume isn't mounted)
+if [ ! -d /app/maps ] || [ -z "$(ls -A /app/maps 2>/dev/null)" ]; then
+  echo "Warning: /app/maps is empty or not mounted. Using container default maps."
+fi
+
 exec node ./bin/bolo-server config.json
