@@ -1,7 +1,8 @@
 {
   "general": {
     "base": "http://localhost:8124",
-    "maxgames": 5
+    "maxgames": 10,
+    "gameTimeout": 900
   },
   "web": {
     "port": 8124,

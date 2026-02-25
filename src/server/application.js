@@ -86,6 +86,7 @@ class BoloServerWorld extends ServerWorld {
   onConnect(ws) {
     // Set-up the websocket parameters.
     this.clients.push(ws);
+    this.lastActivity = Date.now();
     ws.heartbeatTimer = 0;
     ws.onmessage = e => this.onMessage(ws, e.data);
     ws.onclose = e => this.onEnd(ws, e.code, e.reason);
@@ -125,10 +126,12 @@ class BoloServerWorld extends ServerWorld {
     if ((idx = this.clients.indexOf(ws)) !== -1) {
       this.clients.splice(idx, 1);
     }
+    this.lastActivity = Date.now();
     return ws.close();
   }
 
   onMessage(ws, message) {
+    this.lastActivity = Date.now();
     if (message === '') { return ws.heartbeatTimer = 0;
     } else if (message.charAt(0) === '{') { return this.onJsonMessage(ws, message);
     } else { return this.onSimpleMessage(ws, message); }
@@ -452,6 +455,7 @@ class Application {
     this.games[gid] = (game = new BoloServerWorld(map));
     game.gid = gid;
     game.url = `${this.options.general.base}/match/${gid}`;
+    game.lastActivity = Date.now();
     console.log(`Created game '${gid}'`);
     console.log(`URL: http://localhost:${this.options.web.port}?${gid}`);
     this.startLoop();
@@ -506,6 +510,19 @@ class Application {
     for (var gid in this.games) {
       var game = this.games[gid];
       game.tick();
+    }
+    this.checkGameExpiration();
+  }
+
+  checkGameExpiration() {
+    const timeout = (this.options.general.gameTimeout || 900) * 1000;
+    const now = Date.now();
+    for (var gid in this.games) {
+      var game = this.games[gid];
+      if ((now - game.lastActivity) > timeout && game.clients.length === 0) {
+        console.log(`Closing expired game '${gid}' (inactive for ${Math.round((now - game.lastActivity) / 1000)}s)`);
+        this.closeGame(game);
+      }
     }
   }
 
