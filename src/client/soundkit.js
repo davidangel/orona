@@ -47,10 +47,17 @@ class SoundKit {
   // Play the effect called `name`.
   play(name) {
     if (!this.isSupported) { return; }
-    const effect = new Audio();
-    effect.src = this.sounds[name];
-    effect.play();
-    return effect;
+    if (!this._audioCache) { this._audioCache = {}; }
+    if (!this._audioCache[name]) {
+      this._audioCache[name] = new Audio();
+      this._audioCache[name].src = this.sounds[name];
+      this._audioCache[name].preload = 'auto';
+      this._audioCache[name].load();
+    }
+    const sound = this._audioCache[name];
+    sound.currentTime = 0;
+    sound.play();
+    return sound;
   }
 }
 
