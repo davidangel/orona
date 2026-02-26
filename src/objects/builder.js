@@ -276,7 +276,9 @@ class Builder extends BoloObject {
         break;
       case this.states.actions.mine:
         if (this.cell.base || this.cell.pill || this.cell.isType('^', ' ', '|', 'b', '}')) { break; }
-        this.cell.setType(null, true, 0); this.hasMine = false;
+        this.cell.mineOwner = this.team;
+        this.cell.setType(null, true, 0);
+        this.hasMine = false;
         this.soundEffect(sounds.MAN_LAY_MINE);
         break;
     }

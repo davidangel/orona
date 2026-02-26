@@ -115,6 +115,9 @@ class Offscreen2dRenderer extends Common2dRenderer {
 
   // When a cell is retiled, we store the tile index and update the segment.
   onRetile(cell, tx, ty) {
+    if (!this.isMineVisibleToPlayer(cell) && cell.mine && !cell.pill && !cell.base) {
+      ty -= 10;
+    }
     cell.tile = [tx, ty];
 
     const segx = floor(cell.x / SEGMENT_SIZE_TILES);

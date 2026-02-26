@@ -182,7 +182,7 @@ class BoloClientWorld extends ClientWorld {
 
   join() {
     const nick = this.joinDialog.find('#join-nick-field').val();
-    let team = this.joinDialog.find('#join-team input[checked]').val();
+    let team = this.joinDialog.find('#join-team input:checked').val();
     team = (() => { switch (team) {
       case 'red':  return 0;
       case 'blue': return 1;
@@ -200,7 +200,8 @@ class BoloClientWorld extends ClientWorld {
   receiveWelcome(tank) {
     this.player = tank;
     this.renderer.initHud();
-    return this.initChat();
+    this.initChat();
+    return this.map.retile();
   }
 
   // Send the heartbeat (an empty message) every 10 ticks / 400ms.
@@ -388,7 +389,7 @@ class BoloClientWorld extends ClientWorld {
   }
 
   handleBinaryCommand(command, data, offset) {
-    let array1, array2, array3, code, idx, life, mine, owner, sfx, x, y;
+    let array1, array2, array3, code, idx, life, mine, mineOwner, owner, sfx, x, y;
     switch (command) {
       case net.SYNC_MESSAGE:
         this.synchronized();
@@ -406,12 +407,13 @@ class BoloClientWorld extends ClientWorld {
         return this.netDestroy(data, offset);
 
       case net.MAPCHANGE_MESSAGE:
-        array1 = unpack('BBBBf', data, offset),
-          [x, y, code, life, mine] = Array.from(array1[0]),
+        array1 = unpack('BBBBBB', data, offset),
+          [x, y, code, life, mine, mineOwner] = Array.from(array1[0]),
           bytes = array1[1];
         var ascii = String.fromCharCode(code);
         var cell = this.map.cells[y][x];
-        cell.setType(ascii, mine);
+        cell.mineOwner = mineOwner;
+        cell.setType(ascii, mine ? true : false);
         cell.life = life;
         return bytes;
 
@@ -419,6 +421,18 @@ class BoloClientWorld extends ClientWorld {
         array2 = unpack('BHHH', data, offset), [sfx, x, y, owner] = Array.from(array2[0]), bytes = array2[1];
         this.renderer.playSound(sfx, x, y, this.objects[owner]);
         return bytes;
+
+      case net.MINEOWNER_MESSAGE:
+        {
+          let startOffset = offset;
+          while (offset < data.length) {
+            array2 = unpack('BBB', data, offset), [x, y, mineOwner] = Array.from(array2[0]), bytes = array2[1];
+            this.map.cells[y][x].mineOwner = mineOwner;
+            this.map.cells[y][x].retile();
+            offset += bytes;
+          }
+          return offset - startOffset;
+        }
 
       case net.TINY_UPDATE_MESSAGE:
         array3 = unpack('H', data, offset), [idx] = Array.from(array3[0]), bytes = array3[1];

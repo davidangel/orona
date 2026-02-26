@@ -78,7 +78,7 @@ class BoloServerWorld extends ServerWorld {
     const {
       ascii
     } = cell.type;
-    return this.changes.push(['mapChange', cell.x, cell.y, ascii, cell.life, cell.mine]);
+    return this.changes.push(['mapChange', cell.x, cell.y, ascii, cell.life, cell.mine, cell.mineOwner]);
   }
 
   //### Connection handling.
@@ -97,6 +97,23 @@ class BoloServerWorld extends ServerWorld {
     let packet = this.map.dump({noPills: true, noBases: true});
     packet = Buffer.from(packet).toString('base64');
     ws.send(packet);
+
+    // Send mineOwner info for all cells with non-neutral mines.
+    const mineOwnerChanges = [];
+    this.map.each(cell => {
+      if (cell.mine && cell.mineOwner !== 255) {
+        mineOwnerChanges.push([cell.x, cell.y, cell.mineOwner]);
+      }
+    });
+    if (mineOwnerChanges.length > 0) {
+      packet = [net.MINEOWNER_MESSAGE];
+      for (var change of mineOwnerChanges) {
+        var [x, y, mineOwner] = change;
+        packet = packet.concat(pack('BBB', x, y, mineOwner));
+      }
+      packet = Buffer.from(packet).toString('base64');
+      ws.send(packet);
+    }
 
     // To synchronize the object list to the client, we simulate creation of all objects.
     // Then, we tell the client which tank is his, using the welcome message.
@@ -327,9 +344,9 @@ class BoloServerWorld extends ServerWorld {
           break;
 
         case 'mapChange':
-          var [x, y, ascii, life, mine] = Array.from(change);
+          var [x, y, ascii, life, mine, mineOwner] = Array.from(change);
           var asciiCode = ascii.charCodeAt(0);
-          data = data.concat([net.MAPCHANGE_MESSAGE], pack('BBBBf', x, y, asciiCode, life, mine));
+          data = data.concat([net.MAPCHANGE_MESSAGE], pack('BBBBBB', x, y, asciiCode, life, mine ? 1 : 0, mineOwner));
           break;
 
         case 'soundEffect':
@@ -377,7 +394,8 @@ class Application {
         // Pick the first available map (fallback to demo map if available)
         const names = Object.getOwnPropertyNames(this.maps.nameIndex);
         let mapDescr = null;
-        if (names.length > 0) { mapDescr = this.maps.nameIndex[names[0]]; }
+        mapDescr = this.maps.get('Everard Island');
+        if (!mapDescr && names.length > 0) { mapDescr = this.maps.nameIndex[names[0]]; }
         if (!mapDescr && this.demo) {
           // If we have a demo, use its map
           try {

@@ -66,6 +66,20 @@ class BaseRenderer {
     return true;
   }
 
+  // Check if a mine should be visible to the player.
+  // Enemy mines are hidden from view.
+  isMineVisibleToPlayer(cell) {
+    if (!cell.mine) { return true; }
+    if (cell.mineOwner === 255) { return true; }
+    const player = this.world.player;
+    if (!player) { return true; }
+    if (cell.mineOwner === player.team) { return true; }
+    if (player.isAlly == null) { return true; }
+    const allyObj = { team: cell.mineOwner, isAlly: player.isAlly };
+    if (player.isAlly(allyObj)) { return true; }
+    return false;
+  }
+
   // This methods takes x and y coordinates to center the screen on. The callback provided should be
   // invoked exactly once. Any drawing operations used from within the callback will have a
   // translation applied so that the given coordinates become the center on the screen.

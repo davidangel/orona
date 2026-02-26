@@ -308,6 +308,9 @@ class WebglRenderer extends BaseRenderer {
 
   // When a cell is retiled, we simply store the tile index for the upcoming frames.
   onRetile(cell, tx, ty) {
+    if (!this.isMineVisibleToPlayer(cell) && cell.mine && !cell.pill && !cell.base) {
+      ty -= 10;
+    }
     return cell.tile = [tx, ty];
   }
 

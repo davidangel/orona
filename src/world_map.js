@@ -133,7 +133,7 @@ class WorldMapCell extends Map.prototype.CellClass {
       case '~': return 4;
       default: return 0;
     } })();
-    return (this.map.world != null ? this.map.world.mapChanged(this, oldType, hadMine, oldLife) : undefined);
+    return (this.map.world != null ? this.map.world.mapChanged(this, oldType, this.mine, oldLife) : undefined);
   }
 
   takeShellHit(shell) {

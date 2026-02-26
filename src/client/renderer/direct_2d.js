@@ -17,7 +17,9 @@ const Common2dRenderer   = require('./common_2d');
 class Direct2dRenderer extends Common2dRenderer {
 
   onRetile(cell, tx, ty) {
-    // Simply cache the tile index.
+    if (!this.isMineVisibleToPlayer(cell) && cell.mine && !cell.pill && !cell.base) {
+      ty -= 10;
+    }
     return cell.tile = [tx, ty];
   }
 

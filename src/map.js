@@ -49,6 +49,7 @@ class MapCell {
     this.y = y;
     this.type = TERRAIN_TYPES['^'];
     this.mine = this.isEdgeCell();
+    this.mineOwner = 255;
 
     // This is just a unique index for this cell; used in a couple of places for convenience.
     this.idx = (this.y * MAP_SIZE_TILES) + this.x;
