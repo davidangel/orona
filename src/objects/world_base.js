@@ -73,7 +73,8 @@ class WorldBase extends BoloObject {
 
   anySpawn() {
     this.cell = this.world.map.cellAtWorld(this.x, this.y);
-    return this.cell.base = this;
+    this.cell.base = this;
+    return this.updateOwner();
   }
 
   update() {
