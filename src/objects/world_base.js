@@ -39,6 +39,7 @@ class WorldBase extends BoloObject {
         return this.updateOwner();
       }
     });
+    this.on('netSync', () => this.updateOwner());
   }
 
   // The state information to synchronize.
@@ -73,8 +74,7 @@ class WorldBase extends BoloObject {
 
   anySpawn() {
     this.cell = this.world.map.cellAtWorld(this.x, this.y);
-    this.cell.base = this;
-    return this.updateOwner();
+    return this.cell.base = this;
   }
 
   update() {
