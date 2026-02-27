@@ -82,7 +82,7 @@ function createModal(content, options = {}) {
 const JOIN_DIALOG_TEMPLATE = `
 <div>
   <p class="text-gray-300 mb-3">What is your name?</p>
-  <input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 
+  <input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 autoComplete="off"
          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500"></input>
   <p class="text-gray-300 mb-2">Choose a side:</p>
   <div id="join-team" class="flex gap-4 mb-4">
