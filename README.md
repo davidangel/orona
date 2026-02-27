@@ -20,7 +20,7 @@ This is a browser-based implementation of Bolo. To play:
    npm run build
    ```
 
-2. Start a local server (see "Running an Orona server" below).
+2. Start a local server (see "Running a Bolo server" below).
 
 3. Open your browser and navigate to `http://localhost:8124/`.
 
@@ -32,7 +32,7 @@ This is a browser-based implementation of Bolo. To play:
 
 Collect credits by destroying trees and buildings to build walls and fortify your base.
 
-## Running an Orona server
+## Running a Bolo server
 
 ### Prerequisites
 
