@@ -16,6 +16,7 @@ const {min, max, round, cos, sin, PI, sqrt} = Math;
 const {TILE_SIZE_PIXELS, TILE_SIZE_WORLD, PIXEL_SIZE_WORLD, MAP_SIZE_PIXELS} = require('../../constants');
 const sounds      = require('../../sounds');
 const TEAM_COLORS = require('../../team_colors');
+const $           = require('../../dom');
 
 
 class BaseRenderer {
@@ -29,17 +30,18 @@ class BaseRenderer {
     this.soundkit = this.world.soundkit;
     this.opacityState = {};
 
-    this.canvas = $('<canvas/>').appendTo('body');
+    this.canvas = document.createElement('canvas');
+    document.body.appendChild(this.canvas);
     this.lastCenter = this.world.map.findCenterCell().getWorldCoordinates();
 
     this.mouse = [0, 0];
-    this.canvas.click(e => this.handleClick(e));
-    this.canvas.mousemove(e => { return this.mouse = [e.pageX, e.pageY]; });
+    this.canvas.addEventListener('click', e => this.handleClick(e));
+    this.canvas.addEventListener('mousemove', e => { return this.mouse = [e.pageX, e.pageY]; });
 
     this.setup();
 
     this.handleResize();
-    $(window).resize(() => this.handleResize());
+    window.addEventListener('resize', () => this.handleResize());
   }
 
   // Subclasses use this as their constructor.
@@ -203,18 +205,14 @@ class BaseRenderer {
   }
 
   handleResize() {
-    this.canvas[0].width  = window.innerWidth;
-    this.canvas[0].height = window.innerHeight;
-    this.canvas.css({
-      width:  window.innerWidth + 'px',
-      height: window.innerHeight + 'px'
-    });
+    this.canvas.width  = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.canvas.style.width = window.innerWidth + 'px';
+    this.canvas.style.height = window.innerHeight + 'px';
 
     // Adjust the body as well, to prevent accidental scrolling on some browsers.
-    return $('body').css({
-      width:  window.innerWidth + 'px',
-      height: window.innerHeight + 'px'
-    });
+    document.body.style.width = window.innerWidth + 'px';
+    document.body.style.height = window.innerHeight + 'px';
   }
 
   handleClick(e) {
@@ -230,7 +228,7 @@ class BaseRenderer {
 
   // Get the view area in pixel coordinates when looking at the given world coordinates.
   getViewAreaAtWorld(x, y) {
-    const {width, height} = this.canvas[0];
+    const {width, height} = this.canvas;
     let left = round((x / PIXEL_SIZE_WORLD) - (width  / 2));
     left = max(0, min(MAP_SIZE_PIXELS - width, left));
     let top  = round((y / PIXEL_SIZE_WORLD) - (height / 2));
@@ -278,7 +276,8 @@ class BaseRenderer {
 
   // Create the HUD container.
   initHud() {
-    this.hud = $('<div/>').appendTo('body');
+    this.hud = document.createElement('div');
+    document.body.appendChild(this.hud);
     this.initHudTankStatus();
     this.initHudPillboxes();
     this.initHudBases();
@@ -288,23 +287,31 @@ class BaseRenderer {
   }
 
   initHudTankStatus() {
-    const container = $('<div/>', {id: 'tankStatus'}).appendTo(this.hud);
-    $('<div/>', {class: 'deco'}).appendTo(container);
+    const container = $.create('div', { id: 'tankStatus' });
+    this.hud.appendChild(container);
+    const deco = $.create('div', { class: 'deco' });
+    container.appendChild(deco);
     this.tankIndicators = {};
     for (var indicator of ['shells', 'mines', 'armour', 'trees']) {
-      var bar = $('<div/>', {class: 'gauge', id: `tank-${indicator}`}).appendTo(container);
-      this.tankIndicators[indicator] = $('<div class="gauge-content"></div>').appendTo(bar);
+      var bar = $.create('div', { class: 'gauge', id: `tank-${indicator}` });
+      container.appendChild(bar);
+      this.tankIndicators[indicator] = $.create('div');
+      this.tankIndicators[indicator].className = 'gauge-content';
+      bar.appendChild(this.tankIndicators[indicator]);
     }
   }
 
   // Create the pillbox status indicator.
   initHudPillboxes() {
-    const container = $('<div/>', {id: 'pillStatus'}).appendTo(this.hud);
-    $('<div/>', {class: 'deco'}).appendTo(container);
+    const container = $.create('div', { id: 'pillStatus' });
+    this.hud.appendChild(container);
+    const deco = $.create('div', { class: 'deco' });
+    container.appendChild(deco);
     this.pillIndicators = (() => {
       const result = [];
       for (var pill of Array.from(this.world.map.pills)) {
-        var node = $('<div/>', {class: 'pill'}).appendTo(container);
+        var node = $.create('div', { class: 'pill' });
+        container.appendChild(node);
         result.push([node, pill]);
       }
       return result;
@@ -313,12 +320,15 @@ class BaseRenderer {
 
   // Create the base status indicator.
   initHudBases() {
-    const container = $('<div/>', {id: 'baseStatus'}).appendTo(this.hud);
-    $('<div/>', {class: 'deco'}).appendTo(container);
+    const container = $.create('div', { id: 'baseStatus' });
+    this.hud.appendChild(container);
+    const deco = $.create('div', { class: 'deco' });
+    container.appendChild(deco);
     this.baseIndicators = (() => {
       const result = [];
       for (var base of Array.from(this.world.map.bases)) {
-        var node = $('<div/>', {class: 'base'}).appendTo(container);
+        var node = $.create('div', { class: 'base' });
+        container.appendChild(node);
         result.push([node, base]);
       }
       return result;
@@ -328,24 +338,26 @@ class BaseRenderer {
   // Create the build tool selection
   initHudToolSelect() {
     this.currentTool = null;
-    const tools = $('<div id="tool-select" />').appendTo(this.hud);
+    const tools = $.create('div', { id: 'tool-select' });
+    this.hud.appendChild(tools);
     for (var toolType of ['forest', 'road', 'building', 'pillbox', 'mine']) {
       this.initHudTool(tools, toolType);
     }
-    return tools.buttonset();
   }
 
   // Create a single build tool item.
   initHudTool(tools, toolType) {
     const toolname = `tool-${toolType}`;
-    const tool = $('<input/>', {type: 'radio', name: 'tool', id: toolname}).appendTo(tools);
-    const label = $('<label/>', {for: toolname}).appendTo(tools);
-    label.append($('<span/>', {class: `bolo-tool bolo-${toolname}`}));
-    return tool.click(e => {
+    const tool = $.create('input', { type: 'radio', name: 'tool', id: toolname });
+    tools.appendChild(tool);
+    const label = $.create('label', { for: toolname });
+    tools.appendChild(label);
+    const span = $.create('span', { class: `bolo-tool bolo-${toolname}` });
+    label.appendChild(span);
+    tool.addEventListener('click', e => {
       if (this.currentTool === toolType) {
         this.currentTool = null;
-        tools.find('input').removeAttr('checked');
-        tools.buttonset('refresh');
+        tools.querySelectorAll('input').forEach(i => i.checked = false);
       } else {
         this.currentTool = toolType;
       }
@@ -356,22 +368,34 @@ class BaseRenderer {
   // Show WIP notice and Github ribbon. These are really a temporary hacks, so FIXME someday.
   initHudNotices() {
     if (location.hostname.split('.')[1] === 'github') {
-      $('<div/>').html(`\
+      const notice = document.createElement('div');
+      notice.innerHTML = `\
 This is a work-in-progress; less than alpha quality!<br>
 To see multiplayer in action, follow instructions on Github.\
-`).css({
-        'position': 'absolute', 'top': '70px', 'left': '0px', 'width': '100%', 'text-align': 'center',
-        'font-family': 'monospace', 'font-size': '16px', 'font-weight': 'bold', 'color': 'white'
-      }).appendTo(this.hud);
+`;
+      notice.style.position = 'absolute';
+      notice.style.top = '70px';
+      notice.style.left = '0px';
+      notice.style.width = '100%';
+      notice.style.textAlign = 'center';
+      notice.style.fontFamily = 'monospace';
+      notice.style.fontSize = '16px';
+      notice.style.fontWeight = 'bold';
+      notice.style.color = 'white';
+      this.hud.appendChild(notice);
     }
 
     if ((location.hostname.split('.')[1] === 'github') || (location.hostname.substr(-6) === '.no.de')) {
-      return $('<a href="https://github.com/stephank/orona"></a>')
-        .css({'position': 'absolute', 'top': '0px', 'right': '0px'})
-        .html('<img src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">')
-        .appendTo(this.hud);
+      const link = document.createElement('a');
+      link.href = 'https://github.com/stephank/orona';
+      link.style.position = 'absolute';
+      link.style.top = '0px';
+      link.style.right = '0px';
+      link.innerHTML = '<img src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">';
+      this.hud.appendChild(link);
     }
   }
+
 
   // Update the HUD elements.
   updateHud() {
@@ -385,14 +409,14 @@ To see multiplayer in action, follow instructions on Github.\
       pill.hudStatusKey = statuskey;
 
       if (pill.inTank || pill.carried) {
-        node.attr('status', 'carried');
+        node.setAttribute('status', 'carried');
       } else if (pill.armour === 0) {
-        node.attr('status', 'dead');
+        node.setAttribute('status', 'dead');
       } else {
-        node.attr('status', 'healthy');
+        node.setAttribute('status', 'healthy');
       }
       color = TEAM_COLORS[pill.team] || { r: 112, g: 112, b: 112 };
-      node.css({'background-color': `rgb(${color.r},${color.g},${color.b})`});
+      node.style.backgroundColor = `rgb(${color.r},${color.g},${color.b})`;
     }
 
     // Bases.
@@ -402,12 +426,12 @@ To see multiplayer in action, follow instructions on Github.\
       base.hudStatusKey = statuskey;
 
       if (base.armour <= 9) {
-        node.attr('status', 'vulnerable');
+        node.setAttribute('status', 'vulnerable');
       } else {
-        node.attr('status', 'healthy');
+        node.setAttribute('status', 'healthy');
       }
       color = TEAM_COLORS[base.team] || { r: 112, g: 112, b: 112 };
-      node.css({'background-color': `rgb(${color.r},${color.g},${color.b})`});
+      node.style.backgroundColor = `rgb(${color.r},${color.g},${color.b})`;
     }
 
     // Tank.
@@ -420,7 +444,7 @@ To see multiplayer in action, follow instructions on Github.\
         if (p.hudLastStatus[prop] === value) { continue; }
         p.hudLastStatus[prop] = value;
 
-        result.push(node.css({height: `${round((value / 40) * 100)}%`}));
+        result.push(node.style.height = `${round((value / 40) * 100)}%`);
       }
       return result;
     })();

@@ -101,7 +101,7 @@ class WebglRenderer extends BaseRenderer {
   setup() {
     // Initialize the canvas.
     try {
-      this.ctx = this.canvas[0].getContext('experimental-webgl');
+      this.ctx = this.canvas.getContext('experimental-webgl');
       this.ctx.bindBuffer; // Just access it, see if it throws.
     } catch (e) {
       throw `Could not initialize WebGL canvas: ${e.message}`;

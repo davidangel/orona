@@ -15,6 +15,7 @@ const DefaultRenderer  = require('../renderer/offscreen_2d');
 const {TICK_LENGTH_MS} = require('../../constants');
 const helpers          = require('../../helpers');
 const BoloWorldMixin   = require('../../world_mixin');
+const $                = require('../../dom');
 
 
 //# Client world mixin
@@ -35,30 +36,7 @@ const BoloClientWorldMixin = {
   // Wait for the applicationCache to finish downloading.
   waitForCache(vignette, callback) {
     // FIXME: Use applicationCache again.
-    return callback(); //unless applicationCache?
-
-    vignette.message('Checking for newer versions');
-    const cache = $(applicationCache);
-
-    cache.bind('downloading.bolo', function() {
-      vignette.message('Downloading latest version');
-      vignette.showProgress();
-      return cache.bind('progress.bolo', p => vignette.progress(p));
-    });
-
-    cache.bind('updateready.bolo', function() {
-      vignette.hideProgress();
-      vignette.message('Reloading latest version');
-      return location.reload();
-    });
-
-    const afterCache = function() {
-      vignette.hideProgress();
-      cache.unbind('.bolo');
-      return callback();
-    };
-    cache.bind('cached.bolo', afterCache);
-    return cache.bind('noupdate.bolo', afterCache);
+    return callback();
   },
 
   // Loads all required resources.
@@ -70,7 +48,7 @@ const BoloClientWorldMixin = {
     this.loadImages(name => {
       let img;
       this.images[name] = (img = new Image());
-      $(img).load(progress.add());
+      img.onload = progress.add();
       return img.src = `images/${name}.png`;
     });
 
@@ -148,18 +126,19 @@ const BoloClientWorldMixin = {
     this.decreasingRange = false;
     this.rangeAdjustTimer = 0;
 
-    this.input = $('<input/>', {id: 'input-dummy', type: 'text', autocomplete: 'off'});
-    this.input.insertBefore(this.renderer.canvas).focus();
+    this.input = $.create('input', { id: 'input-dummy', type: 'text', autocomplete: 'off' });
+    this.renderer.canvas.parentNode.insertBefore(this.input, this.renderer.canvas);
+    this.input.focus();
 
-    return this.input.add(this.renderer.canvas).add('#tool-select label')
-      .keydown(e => {
-        e.preventDefault();
-        switch (e.which) {
+    this.input.addEventListener('keydown', e => {
+      e.preventDefault();
+      switch (e.which) {
           case 90: return this.increasingRange = true;
           case 88: return this.decreasingRange = true;
           default: return this.handleKeydown(e);
         }
-    }).keyup(e => {
+    });
+    this.input.addEventListener('keyup', e => {
         e.preventDefault();
         switch (e.which) {
           case 90: return this.increasingRange = false;
@@ -174,7 +153,16 @@ const BoloClientWorldMixin = {
     if (this.loop != null) {
       this.loop.stop();
     }
-    return $('<div/>').text(message).dialog({modal: true, dialogClass: 'unclosable'});
+    const overlay = $.create('div', { class: 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center' });
+    const dialog = document.createElement('div');
+    dialog.className = 'bg-gray-800 rounded-lg shadow-2xl p-6 min-w-[300px] max-w-md border border-gray-700';
+    dialog.innerHTML = `
+      <p class="text-gray-300 mb-4">${message}</p>
+      <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">OK</button>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    dialog.querySelector('button').addEventListener('click', () => overlay.remove());
   },
 
   // Check and rewrite the build order that the user just tried to do.

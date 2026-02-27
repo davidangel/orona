@@ -18,6 +18,7 @@
 const {floor}            = Math;
 const {TILE_SIZE_PIXELS,
  MAP_SIZE_TILES}   = require('../../constants');
+const $               = require('../../dom');
 const Common2dRenderer   = require('./common_2d');
 
 
@@ -61,7 +62,7 @@ class CachedSegment {
 
   build() {
     // Create the canvas.
-    this.canvas = $('<canvas/>')[0];
+    this.canvas = document.createElement('canvas');
     this.canvas.width = (this.canvas.height = SEGMENT_SIZE_PIXEL);
     this.ctx = this.canvas.getContext('2d');
 

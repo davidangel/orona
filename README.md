@@ -98,10 +98,7 @@ All the graphic and sound files are from:
 
 For the browser client, Bolo/Orona also bundles:
 
- * [jQuery], © 2010 John Resig, licensed MIT and GPLv2.
  * [Sizzle], © 2010 The Dojo Foundation, licensed MIT, BSD and GPL.
- * [jQuery UI], © 2010 The jQuery UI Team, licensed MIT and GPLv2.
- * [jQuery Cookie plugin], © 2006 Klaus Hartl, licensed MIT and GPLv2.
  * Components that are part of [Villain].
 
  [Bolo]: http://www.bolo.net/

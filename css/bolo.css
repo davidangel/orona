@@ -16,29 +16,42 @@ body {
   background: black;
 }
 
-.unclosable .ui-dialog-titlebar-close {
-  display: none;
-}
-
-#join-team {
-  margin: 0;
-}
-
-#join-team .ui-button {
-  margin-right: 5px;
-}
-
-#join-team .ui-button-text {
-  line-height: 0;
-}
-
-.bolo-team {
+.team-radio {
   display: inline-block;
-  width: 32px; height: 32px;
 }
 
-.bolo-team-red  { background: #ff0000; }
-.bolo-team-blue { background: #0000ff; }
+.team-radio-red.team-radio-red  { background: #dc2626; }
+.team-radio-blue.team-radio-blue { background: #2563eb; }
+
+input[type="radio"]:checked + .team-radio-red {
+  box-shadow: 0 0 0 3px white;
+}
+
+input[type="radio"]:checked + .team-radio-blue {
+  box-shadow: 0 0 0 3px white;
+}
+
+#tool-select input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+#tool-select label {
+  display: inline-block;
+  padding: 2px;
+  cursor: pointer;
+  margin: 3px;
+}
+
+#tool-select input[type="radio"] + label .bolo-tool {
+  outline: 2px solid #555555;
+}
+
+#tool-select input[type="radio"]:checked + label .bolo-tool {
+  outline: 2px solid #ffff00;
+}
 
 canvas {
   cursor: crosshair;
@@ -148,7 +161,7 @@ canvas {
 #tool-select {
   position: absolute;
   top: 8px; left: 50%;
-  margin: 0 0 0 -140px; width: 280px;
+  margin: 0 0 0 -140px; width: 300px;
   text-align: center;
 }
 

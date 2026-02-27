@@ -15,6 +15,7 @@ const {TILE_SIZE_PIXELS, PIXEL_SIZE_WORLD} = require('../../constants');
 const {distance, heading} = require('../../helpers');
 const BaseRenderer = require('./base');
 const TEAM_COLORS  = require('../../team_colors');
+const $            = require('../../dom');
 
 
 class Common2dRenderer extends BaseRenderer {
@@ -22,7 +23,7 @@ class Common2dRenderer extends BaseRenderer {
   setup() {
     // Initialize the canvas.
     try {
-      this.ctx = this.canvas[0].getContext('2d');
+      this.ctx = this.canvas.getContext('2d');
       this.ctx.drawImage;  // Just access it, see if it throws.
     } catch (e) {
       throw `Could not initialize 2D canvas: ${e.message}`;
@@ -31,7 +32,7 @@ class Common2dRenderer extends BaseRenderer {
   // We need to get the raw pixel data from the overlay.
     const img = this.images.overlay;
     // Create a temporary canvas.
-    const temp = $('<canvas/>')[0];
+    const temp = document.createElement('canvas');
     temp.width  = img.width;
     temp.height = img.height;
     // Copy the Image onto the canvas.
@@ -63,7 +64,7 @@ class Common2dRenderer extends BaseRenderer {
     const {width, height} = base;
 
     // Create the new canvas.
-    const source = $('<canvas/>')[0];
+    const source = document.createElement('canvas');
     source.width  = width;
     source.height = height;
 

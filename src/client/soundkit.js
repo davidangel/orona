@@ -7,6 +7,7 @@
 //# Soundkit
 
 // A thin audio layer.
+const $ = require('../dom');
 
 class SoundKit {
   constructor() {
@@ -32,8 +33,8 @@ class SoundKit {
     this.register(name, url);
     if (!this.isSupported) { return (typeof cb === 'function' ? cb() : undefined); }
     const loader = new Audio();
-    if (cb) { $(loader).one('canplaythrough', cb); }
-    $(loader).one('error', e => {
+    if (cb) { loader.addEventListener('canplaythrough', cb); }
+    loader.addEventListener('error', e => {
       // FIXME: support more error codes.
       switch (e.code) {
         case e.MEDIA_ERR_SRC_NOT_SUPPORTED:

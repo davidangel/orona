@@ -3,15 +3,21 @@
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/main/docs/suggestions.md
  */
+const $ = require('../dom');
+
 class Vignette {
 
   constructor() {
-    this.container = $('<div class="vignette"/>').appendTo('body');
-    this.messageLine = $('<div class="vignette-message"/>').appendTo(this.container);
+    this.container = document.createElement('div');
+    this.container.className = 'vignette';
+    document.body.appendChild(this.container);
+    this.messageLine = document.createElement('div');
+    this.messageLine.className = 'vignette-message';
+    this.container.appendChild(this.messageLine);
   }
 
   message(text) {
-    return this.messageLine.text(text);
+    return this.messageLine.textContent = text;
   }
 
   showProgress() {}

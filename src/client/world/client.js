@@ -17,43 +17,101 @@ const {unpack}         = require('../../struct');
 const {decodeBase64}   = require('../base64');
 const net              = require('../../net');
 const helpers          = require('../../helpers');
+const $                = require('../../dom');
+
+function createModal(content, options = {}) {
+  const overlay = $.create('div', { class: 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center' });
+  const dialog = document.createElement('div');
+  dialog.className = 'bg-gray-800 rounded-lg shadow-2xl p-6 min-w-[320px] max-w-md border border-gray-700';
+  dialog.innerHTML = content;
+  
+  if (options.title) {
+    const title = document.createElement('h2');
+    title.className = 'text-xl font-bold text-gray-100 mb-4';
+    title.textContent = options.title;
+    dialog.prepend(title);
+  }
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  const wrap = (el) => {
+    if (!el) return {
+      focus: () => {},
+      keydown: () => {},
+      click: () => {},
+      addEventListener: () => {},
+      get 0() { return null; }
+    };
+    return {
+      focus: () => { el.focus(); return wrap(el); },
+      keydown: (fn) => { el.addEventListener('keydown', fn); return wrap(el); },
+      click: (fn) => { el.addEventListener('click', fn); return wrap(el); },
+      addEventListener: (evt, fn) => { el.addEventListener(evt, fn); return wrap(el); },
+      get value() { return el.value; },
+      set value(v) { el.value = v; },
+      get checked() { return el.checked; },
+      set checked(v) { el.checked = v; },
+      get parentElement() { return wrap(el.parentElement); },
+      querySelector: (s) => wrap(el.querySelector(s)),
+      get classList() { return el.classList; },
+      get 0() { return el; }
+    };
+  };
+  
+  const api = {
+    find: (selector) => wrap(dialog.querySelector(selector)),
+    close: () => {
+      overlay.remove();
+      if (options.onClose) options.onClose();
+    }
+  };
+  
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay && !options.persistent) {
+      api.close();
+    }
+  });
+  
+  return api;
+}
 
 // FIXME: Better error handling all around.
 
 
-const JOIN_DIALOG_TEMPLATE = `\
-<div id="join-dialog">
-  <div>
-    <p>What is your name?</p>
-    <p style="margin: 8px 0;"><input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 style="margin: 8px 0;"></input></p>
+const JOIN_DIALOG_TEMPLATE = `
+<div>
+  <p class="text-gray-300 mb-3">What is your name?</p>
+  <input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 
+         class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500"></input>
+  <p class="text-gray-300 mb-2">Choose a side:</p>
+  <div id="join-team" class="flex gap-4 mb-4">
+    <label class="flex items-center cursor-pointer p-2">
+      <input type="radio" id="join-team-red" name="join-team" value="red" class="sr-only">
+      <span class="w-8 h-8 rounded-full bg-red-600 border-2 border-transparent hover:border-white transition-colors team-radio team-radio-red"></span>
+      <span class="ml-2 text-gray-300">Red</span>
+    </label>
+    <label class="flex items-center cursor-pointer p-2">
+      <input type="radio" id="join-team-blue" name="join-team" value="blue" class="sr-only">
+      <span class="w-8 h-8 rounded-full bg-blue-600 border-2 border-transparent hover:border-white transition-colors team-radio team-radio-blue"></span>
+      <span class="ml-2 text-gray-300">Blue</span>
+    </label>
   </div>
-  <div id="join-team">
-    <p>Choose a side:</p>
-    <p>
-      <input type="radio" id="join-team-red" name="join-team" value="red"></input>
-      <label for="join-team-red"><span class="bolo-team bolo-team-red"></span></label>
-      <input type="radio" id="join-team-blue" name="join-team" value="blue"></input>
-      <label for="join-team-blue"><span class="bolo-team bolo-team-blue"></span></label>
-    </p>
-  </div>
-  <div>
-    <p><input type="button" name="join-submit" id="join-submit" value="Join game"></input></p>
-  </div>
-</div>\
-`;
+  <button id="join-submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">Join Game</button>
+</div>`;
 
-const LAUNCH_TEMPLATE = `\
-<div id="launch-dialog">
-  <div>
-    <p>Create a new game, or join with a 6-digit hex code.</p>
+
+const LAUNCH_TEMPLATE = `
+<div>
+  <p class="text-gray-300 mb-4">Create a new game, or join with a game code.</p>
+  <input type="text" id="join-code-field" name="join-code-field" 
+         class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500" 
+         maxlength=6 placeholder="e.g. a3f1c9"></input>
+  <div class="flex gap-3">
+    <button id="join-code-submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">Join</button>
+    <button id="create-game-submit" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors">Create Game</button>
   </div>
-  <div>
-    <p><input type="text" id="join-code-field" name="join-code-field" style="margin: 8px 0;" maxlength=6 placeholder="e.g. a3f1c9"></input></p>
-    <p><input type="button" id="join-code-submit" value="Join"></input>
-       <input type="button" id="create-game-submit" value="Create Game"></input></p>
-  </div>
-</div>\
-`;
+</div>`;
 
 
 //# Networked game
@@ -84,9 +142,8 @@ class BoloClientWorld extends ClientWorld {
       path = `/match/${m[1]}`;
       const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       this.ws = new WebSocket(`${wsProtocol}//${location.host}${path}`);
-      const ws = $(this.ws);
-      ws.one('open.bolo', () => { return this.connected(); });
-      ws.one('close.bolo', () => { return this.failure('Connection lost'); });
+      this.ws.addEventListener('open', () => { return this.connected(); });
+      this.ws.addEventListener('close', () => { return this.failure('Connection lost'); });
       return;
     }
 
@@ -95,19 +152,11 @@ class BoloClientWorld extends ClientWorld {
 
     // Otherwise present a launch dialog allowing create/join by code.
     this.vignette.message('Choose Create or Join');
-    this.launchDialog = $(LAUNCH_TEMPLATE).dialog({dialogClass: 'unclosable'});
-    this.launchDialog
-      .find('#join-code-field')
-        .focus()
-        .keydown(e => { if (e.which === 13) { this.launchJoin(); } })
-      .end()
-      .find('#join-code-submit')
-        .button()
-        .click(() => { return this.launchJoin(); })
-      .end()
-      .find('#create-game-submit')
-        .button()
-        .click(() => { return this.launchCreate(); });
+    this.launchDialog = createModal(LAUNCH_TEMPLATE, { persistent: true });
+    this.launchDialog.find('#join-code-field').focus();
+    this.launchDialog.find('#join-code-field').keydown(e => { if (e.which === 13) { this.launchJoin(); } });
+    this.launchDialog.find('#join-code-submit').click(() => { return this.launchJoin(); });
+    this.launchDialog.find('#create-game-submit').click(() => { return this.launchCreate(); });
   }
 
   launchJoin() {
@@ -128,10 +177,11 @@ class BoloClientWorld extends ClientWorld {
 
   connected() {
     this.vignette.message('Waiting for the game map');
-    const ws = $(this.ws);
-    return ws.one('message.bolo', e => {
-      return this.receiveMap(e.originalEvent);
-    });
+    const oneTimeHandler = (e) => {
+      this.ws.removeEventListener('message', oneTimeHandler);
+      return this.receiveMap(e);
+    };
+    this.ws.addEventListener('message', oneTimeHandler);
   }
 
   // Callback after the map was received.
@@ -139,9 +189,10 @@ class BoloClientWorld extends ClientWorld {
     this.map = WorldMap.load(decodeBase64(e.data));
     this.commonInitialization();
     this.vignette.message('Waiting for the game state');
-    return $(this.ws).bind('message.bolo', e => {
-      return this.handleMessage(e.originalEvent);
-    });
+    this._messageHandler = (e) => {
+      return this.handleMessage(e);
+    };
+    this.ws.addEventListener('message', this._messageHandler);
   }
 
   // Callback after the server tells us we are synchronized.
@@ -159,30 +210,26 @@ class BoloClientWorld extends ClientWorld {
     }
     const disadvantaged = blue < red ? 'blue' : 'red';
 
-    this.joinDialog = $(JOIN_DIALOG_TEMPLATE).dialog({dialogClass: 'unclosable'});
-    return this.joinDialog
-      .find('#join-nick-field')
-        .val($.cookie('nick') || '')
-        .focus()
-        .keydown(e => {
-          if (e.which === 13) { return this.join(); }
-      }).end()
-      .find(`#join-team-${disadvantaged}`)
-        .attr('checked', 'checked')
-      .end()
-      .find("#join-team")
-        .buttonset()
-      .end()
-      .find('#join-submit')
-        .button()
-        .click(() => {
-          return this.join();
+    this.joinDialog = createModal(JOIN_DIALOG_TEMPLATE, { persistent: true });
+    const nickField = this.joinDialog.find('#join-nick-field');
+    nickField.value = $.cookie.get('nick') || '';
+    nickField.focus();
+    nickField.addEventListener('keydown', e => {
+      if (e.which === 13) { return this.join(); }
+    });
+    
+    const teamRadio = this.joinDialog.find(`#join-team-${disadvantaged}`);
+    teamRadio.checked = true;
+    teamRadio.parentElement.querySelector('.team-radio').classList.add('border-white');
+    
+    this.joinDialog.find('#join-submit').addEventListener('click', () => {
+      return this.join();
     });
   }
 
   join() {
-    const nick = this.joinDialog.find('#join-nick-field').val();
-    let team = this.joinDialog.find('#join-team input:checked').val();
+    const nick = this.joinDialog.find('#join-nick-field').value;
+    let team = this.joinDialog.find('#join-team input:checked').value;
     team = (() => { switch (team) {
       case 'red':  return 0;
       case 'blue': return 1;
@@ -190,8 +237,8 @@ class BoloClientWorld extends ClientWorld {
     } })();
     if (!nick || (team === -1)) { return; }
 
-    $.cookie('nick', nick);
-    this.joinDialog.dialog('destroy'); this.joinDialog = null;
+    $.cookie.set('nick', nick);
+    this.joinDialog.close(); this.joinDialog = null;
     this.ws.send(JSON.stringify({ command: 'join', nick, team }));
     return this.input.focus();
   }
@@ -227,7 +274,9 @@ class BoloClientWorld extends ClientWorld {
   failure(message) {
     if (this.ws) {
       this.ws.close();
-      $(this.ws).unbind('.bolo');
+      if (this._messageHandler) {
+        this.ws.removeEventListener('message', this._messageHandler);
+      }
       this.ws = null;
     }
     return super.failure(...arguments);
@@ -252,41 +301,44 @@ class BoloClientWorld extends ClientWorld {
   //### Chat handlers
 
   initChat() {
-    this.chatMessages = $('<div/>', {id: 'chat-messages'}).appendTo(this.renderer.hud);
-    this.chatContainer = $('<div/>', {id: 'chat-input'}).appendTo(this.renderer.hud).hide();
-    return this.chatInput = $('<input/>', {type: 'text', name: 'chat', maxlength: 140})
-      .appendTo(this.chatContainer).keydown(e => this.handleChatKeydown(e));
+    this.chatMessages = $.create('div', { id: 'chat-messages' });
+    this.renderer.hud.appendChild(this.chatMessages);
+    this.chatContainer = $.create('div', { id: 'chat-input' });
+    this.chatContainer.style.display = 'none';
+    this.renderer.hud.appendChild(this.chatContainer);
+    this.chatInput = $.create('input', { type: 'text', name: 'chat', maxlength: 140 });
+    this.chatContainer.appendChild(this.chatInput);
+    this.chatInput.addEventListener('keydown', (e) => this.handleChatKeydown(e));
   }
 
   openChat(options) {
     if (!options) { options = {}; }
-    this.chatContainer.show();
-    return this.chatInput.val('').focus().team = options.team;
+    this.chatContainer.style.display = 'block';
+    this.chatInput.value = '';
+    this.chatInput.focus();
+    this.chatInput.team = options.team;
   }
 
   commitChat() {
     this.ws.send(JSON.stringify({
       command: this.chatInput.team ? 'teamMsg' : 'msg',
-      text: this.chatInput.val()
+      text: this.chatInput.value
     })
     );
     return this.closeChat();
   }
 
   closeChat() {
-    this.chatContainer.hide();
+    this.chatContainer.style.display = 'none';
     return this.input.focus();
   }
 
   receiveChat(who, text, options) {
     if (!options) { options = {}; }
-    const element =
-      options.team ?
-        $('<p/>', {class: 'msg-team'}).text(`<${who.name}> ${text}`)
-      :
-        // FIXME: Style the name according to team, but the palette colors might not be readable.
-        $('<p/>', {class: 'msg'}).text(`<${who.name}> ${text}`);
-    this.chatMessages.append(element);
+    const element = document.createElement('p');
+    element.className = options.team ? 'msg-team' : 'msg';
+    element.textContent = `<${who.name}> ${text}`;
+    this.chatMessages.appendChild(element);
     return window.setTimeout(() => {
       return element.remove();
     }
