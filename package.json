@@ -13,8 +13,10 @@
     "url": "http://stephan.kochen.nl/"
   },
   "scripts": {
-    "server": "node ./bin/bolo-server config.json",
-    "build": "node node_modules/browserify/bin/cmd.js src/client/index.js -s World -o js/bolo-bundle.js"
+    "build:css": "npx tailwindcss -i ./css/bolo.css -o ./css/compiled.css --minify",
+    "build:js": "node node_modules/browserify/bin/cmd.js src/client/index.js -s World -o js/bolo-bundle.js",
+    "build": "npm run build:css && npm run build:js",
+    "server": "node ./bin/bolo-server config.json"
   },
   "engines": {
     "node": ">=14"
@@ -32,11 +34,11 @@
   "bin": {
     "bolo-server": "./bin/bolo-server"
   },
-  "devDependencies": {
-    "decaffeinate": "^8.1.4"
-  },
   "overrides": {
     "minimatch": "^10.2.1",
     "bn.js": "5.2.3"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
   }
 }

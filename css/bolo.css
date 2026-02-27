@@ -1,11 +1,6 @@
-/*
-Orona, © 2010 Stéphan Kochen
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 * {
   margin: 0; border: 0; padding: 0;
@@ -163,14 +158,6 @@ canvas {
   top: 8px; left: 50%;
   margin: 0 0 0 -140px; width: 300px;
   text-align: center;
-}
-
-#tool-select .ui-button {
-  margin-right: 1px;
-}
-
-#tool-select .ui-button-text {
-  padding: 3px; line-height: 0;
 }
 
 .bolo-tool {
