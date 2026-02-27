@@ -229,6 +229,8 @@ class BoloServerWorld extends ServerWorld {
     }
 
     ws.tank = this.spawn(Tank, message.team);
+    const teamName = message.team === 0 ? 'red' : 'blue';
+    console.log(`Game ${this.gid}: ${message.nick} has joined the ${teamName} team.`);
     let packet = this.changesPacket(true);
     packet = Buffer.from(packet).toString('base64');
     this.broadcast(packet);
