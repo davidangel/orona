@@ -1,5 +1,8 @@
 # Bolo
 
+<img width="1045" height="445" alt="image" src="https://github.com/user-attachments/assets/fa6113b6-858d-42b6-b120-6be9bbdb8606" />
+
+
 Bolo is a top-down game of tank warfare originally written by Stuart Cheshire for the BBC Micro and
 Apple Macintosh, and also notably rewritten for Windows and Linux by John Morrison.
 
