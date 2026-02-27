@@ -29,8 +29,7 @@ This is a browser-based implementation of Bolo. To play:
  * **Arrow Keys** - Move tank
  * **Space** - Fire
  * **R** - Chat
-
-Collect credits by destroying trees and buildings to build walls and fortify your base.
+ * **Mouse** - Send little green man on missions, select items to harvest/build/deploy
 
 ## Running a Bolo server
 
