@@ -75,6 +75,8 @@ class SettingsManager {
   constructor() {
     this.keyMappings = { ...DEFAULT_KEY_MAPPINGS };
     this.volume = 0.5;
+    this.nickname = '';
+    this.team = 'red';
     this.load();
   }
 
@@ -85,6 +87,8 @@ class SettingsManager {
         const data = JSON.parse(saved);
         this.keyMappings = { ...DEFAULT_KEY_MAPPINGS, ...(data.keyMappings || {}) };
         this.volume = data.volume ?? 0.5;
+        this.nickname = data.nickname || '';
+        this.team = data.team || 'red';
       }
     } catch (e) {
       console.warn('Failed to load settings:', e);
@@ -95,11 +99,29 @@ class SettingsManager {
     try {
       localStorage.setItem('bolo-settings', JSON.stringify({
         keyMappings: this.keyMappings,
-        volume: this.volume
+        volume: this.volume,
+        nickname: this.nickname,
+        team: this.team
       }));
     } catch (e) {
       console.warn('Failed to save settings:', e);
     }
+  }
+
+  setNickname(value) {
+    this.nickname = value;
+  }
+
+  getNickname() {
+    return this.nickname;
+  }
+
+  setTeam(value) {
+    this.team = value;
+  }
+
+  getTeam() {
+    return this.team;
   }
 
   setKeyMapping(action, key) {

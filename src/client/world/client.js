@@ -94,16 +94,18 @@ const JOIN_DIALOG_TEMPLATE = `
   <input type="text" id="join-nick-field" name="join-nick-field" maxlength=20 autoComplete="off"
          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500"></input>
   <p class="text-gray-300 mb-2">Choose a side:</p>
-  <div id="join-team" class="flex gap-4 mb-4">
+  <div id="join-team" class="flex gap-4 mb-2">
     <label class="flex items-center cursor-pointer p-2">
       <input type="radio" id="join-team-red" name="join-team" value="red" class="sr-only">
       <span class="w-8 h-8 rounded-full bg-red-600 border-2 border-transparent hover:border-white transition-colors team-radio team-radio-red"></span>
       <span class="ml-2 text-gray-300">Red</span>
+      <span id="join-team-red-count" class="ml-1 text-gray-500 text-sm"></span>
     </label>
     <label class="flex items-center cursor-pointer p-2">
       <input type="radio" id="join-team-blue" name="join-team" value="blue" class="sr-only">
       <span class="w-8 h-8 rounded-full bg-blue-600 border-2 border-transparent hover:border-white transition-colors team-radio team-radio-blue"></span>
       <span class="ml-2 text-gray-300">Blue</span>
+      <span id="join-team-blue-count" class="ml-1 text-gray-500 text-sm"></span>
     </label>
   </div>
   <button id="join-submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">Join Game</button>
@@ -225,16 +227,26 @@ class BoloClientWorld extends ClientWorld {
     const disadvantaged = blue < red ? 'blue' : 'red';
 
     this.joinDialog = createModal(JOIN_DIALOG_TEMPLATE, { persistent: true });
+    
+    const redCountSpan = this.joinDialog.find('#join-team-red-count');
+    const blueCountSpan = this.joinDialog.find('#join-team-blue-count');
+    if (redCountSpan) redCountSpan.textContent = `(${red})`;
+    if (blueCountSpan) blueCountSpan.textContent = `(${blue})`;
+    
     const nickField = this.joinDialog.find('#join-nick-field');
-    nickField.value = $.cookie.get('nick') || '';
+    nickField.value = this.settingsManager.getNickname() || '';
     nickField.focus();
     nickField.addEventListener('keydown', e => {
       if (e.which === 13) { return this.join(); }
     });
     
-    const teamRadio = this.joinDialog.find(`#join-team-${disadvantaged}`);
-    teamRadio.checked = true;
-    teamRadio.parentElement.querySelector('.team-radio').classList.add('border-white');
+    const savedTeam = this.settingsManager.getTeam();
+    const teamToSelect = (savedTeam && (savedTeam === 'red' || savedTeam === 'blue')) ? savedTeam : disadvantaged;
+    const teamRadio = this.joinDialog.find(`#join-team-${teamToSelect}`);
+    if (teamRadio && teamRadio.parentElement) {
+      teamRadio.checked = true;
+      teamRadio.parentElement['0'].querySelector('.team-radio').classList.add('border-white');
+    }
     
     this.joinDialog.find('#join-submit').addEventListener('click', () => {
       return this.join();
@@ -243,15 +255,17 @@ class BoloClientWorld extends ClientWorld {
 
   join() {
     const nick = this.joinDialog.find('#join-nick-field').value;
-    let team = this.joinDialog.find('#join-team input:checked').value;
-    team = (() => { switch (team) {
+    let teamValue = this.joinDialog.find('#join-team input:checked').value;
+    let team = (() => { switch (teamValue) {
       case 'red':  return 0;
       case 'blue': return 1;
       default: return -1;
     } })();
     if (!nick || (team === -1)) { return; }
 
-    $.cookie.set('nick', nick);
+    this.settingsManager.setNickname(nick);
+    this.settingsManager.setTeam(teamValue);
+    this.settingsManager.save();
     this.joinDialog.close(); this.joinDialog = null;
     this.ws.send(JSON.stringify({ command: 'join', nick, team }));
     return this.input.focus();
