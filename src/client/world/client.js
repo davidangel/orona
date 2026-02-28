@@ -391,11 +391,8 @@ class BoloClientWorld extends ClientWorld {
       case 32: return this.ws.send(net.START_SHOOTING);
       case 'build': return this.player.builder.select('wall');
       case 'dropMine': return this.player.builder.select('mine');
-      case 'chat':
-      case 't':
-      case 84: return this.openChat();
-      case 'r':
-      case 82: return this.openChat({team: true});
+      case 'chat': return this.openChat();
+      case 'teamChat': return this.openChat({team: true});
     }
   }
 

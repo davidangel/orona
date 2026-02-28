@@ -6,7 +6,8 @@ const DEFAULT_KEY_MAPPINGS = {
   fire: 'Space',
   dropMine: 'KeyS',
   build: 'KeyB',
-  chat: 'Enter',
+  chat: 'KeyR',
+  teamChat: 'KeyT',
 };
 
 const KEY_DISPLAY_NAMES = {
@@ -18,6 +19,7 @@ const KEY_DISPLAY_NAMES = {
   dropMine: 'Drop Mine',
   build: 'Build Wall',
   chat: 'Chat',
+  teamChat: 'Team Chat',
 };
 
 const KEY_NAME_TO_CODE = {

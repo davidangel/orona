@@ -363,8 +363,17 @@ canvas {
   font: bold 11px sans-serif;
 }
 
-#chat-input { top: 70px; }
-#chat-messages { top: 86px; }
+#chat-input input {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 3px 6px;
+  border-radius: 4px;
+  outline: none;
+}
+
+#chat-input {
+  top: 70px;
+}
+#chat-messages { top: 100px; }
 
 .msg      { color: #ffffff }
 .msg-team { color: #00ff00 }
