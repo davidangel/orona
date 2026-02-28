@@ -156,9 +156,14 @@ const BoloClientWorldMixin = {
     const overlay = $.create('div', { class: 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center' });
     const dialog = document.createElement('div');
     dialog.className = 'bg-gray-800 rounded-lg shadow-2xl p-6 min-w-[300px] max-w-md border border-gray-700';
+    let extraLink = '';
+    if (message === 'Connection lost') {
+      extraLink = '<a href="/" class="block mt-4 text-center text-blue-400 hover:text-blue-300 text-sm">Create a new game</a>';
+    }
     dialog.innerHTML = `
       <p class="text-gray-300 mb-4">${message}</p>
       <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">OK</button>
+      ${extraLink}
     `;
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);

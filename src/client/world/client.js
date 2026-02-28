@@ -18,6 +18,7 @@ const {decodeBase64}   = require('../base64');
 const net              = require('../../net');
 const helpers          = require('../../helpers');
 const $                = require('../../dom');
+const { SettingsManager, DEFAULT_KEY_MAPPINGS, KEY_DISPLAY_NAMES } = require('../settings');
 
 function createModal(content, options = {}) {
   const overlay = $.create('div', { class: 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center' });
@@ -50,6 +51,10 @@ function createModal(content, options = {}) {
       addEventListener: (evt, fn) => { el.addEventListener(evt, fn); return wrap(el); },
       get value() { return el.value; },
       set value(v) { el.value = v; },
+      get innerHTML() { return el.innerHTML; },
+      set innerHTML(v) { el.innerHTML = v; },
+      get textContent() { return el.textContent; },
+      set textContent(v) { el.textContent = v; },
       get checked() { return el.checked; },
       set checked(v) { el.checked = v; },
       get parentElement() { return wrap(el.parentElement); },
@@ -61,6 +66,10 @@ function createModal(content, options = {}) {
   
   const api = {
     find: (selector) => wrap(dialog.querySelector(selector)),
+    findAll: (selector) => {
+      const els = dialog.querySelectorAll(selector);
+      return Array.from(els).map(el => wrap(el));
+    },
     close: () => {
       overlay.remove();
       if (options.onClose) options.onClose();
@@ -136,6 +145,11 @@ class BoloClientWorld extends ClientWorld {
     this.vignette = vignette;
     this.vignette.message('Connecting to the multiplayer game');
     this.heartbeatTimer = 0;
+
+    this.settingsManager = new SettingsManager();
+    if (this.soundkit) {
+      this.soundkit.setVolume(this.settingsManager.getVolume());
+    }
 
     // If a 6-digit hex id is present in the querystring, connect to that match.
     if (m = /^\?([0-9a-f]{6})$/.exec(location.search)) {
@@ -349,25 +363,42 @@ class BoloClientWorld extends ClientWorld {
 
   handleKeydown(e) {
     if (!this.ws || !this.player) { return; }
-    switch (e.which) {
-      case 32: return this.ws.send(net.START_SHOOTING);
-      case 37: return this.ws.send(net.START_TURNING_CCW);
+    const action = this.settingsManager ? this.settingsManager.getReverseKeyCode(e.which) : null;
+    switch (action || e.which) {
+      case 'up':
       case 38: return this.ws.send(net.START_ACCELERATING);
-      case 39: return this.ws.send(net.START_TURNING_CW);
+      case 'down':
       case 40: return this.ws.send(net.START_BRAKING);
+      case 'left':
+      case 37: return this.ws.send(net.START_TURNING_CCW);
+      case 'right':
+      case 39: return this.ws.send(net.START_TURNING_CW);
+      case 'fire':
+      case 32: return this.ws.send(net.START_SHOOTING);
+      case 'build': return this.player.builder.select('wall');
+      case 'dropMine': return this.player.builder.select('mine');
+      case 'chat':
+      case 't':
       case 84: return this.openChat();
+      case 'r':
       case 82: return this.openChat({team: true});
     }
   }
 
   handleKeyup(e) {
     if (!this.ws || !this.player) { return; }
-    switch (e.which) {
-      case 32: return this.ws.send(net.STOP_SHOOTING);
-      case 37: return this.ws.send(net.STOP_TURNING_CCW);
+    const action = this.settingsManager ? this.settingsManager.getReverseKeyCode(e.which) : null;
+    switch (action || e.which) {
+      case 'up':
       case 38: return this.ws.send(net.STOP_ACCELERATING);
-      case 39: return this.ws.send(net.STOP_TURNING_CW);
+      case 'down':
       case 40: return this.ws.send(net.STOP_BRAKING);
+      case 'left':
+      case 37: return this.ws.send(net.STOP_TURNING_CCW);
+      case 'right':
+      case 39: return this.ws.send(net.STOP_TURNING_CW);
+      case 'fire':
+      case 32: return this.ws.send(net.STOP_SHOOTING);
     }
   }
 
@@ -536,6 +567,153 @@ class BoloClientWorld extends ClientWorld {
       cell.life = cell._net_oldLife;
     }
     return this.mapChanges = {};
+  }
+
+  showSettings() {
+    if (this.settingsDialog) {
+      this.settingsDialog.close();
+      this.settingsDialog = null;
+      return;
+    }
+
+    if (!this.settingsManager) {
+      this.settingsManager = new SettingsManager();
+    }
+
+    const actions = Object.keys(DEFAULT_KEY_MAPPINGS);
+    let rowsHtml = '';
+    for (const action of actions) {
+      const currentKey = this.settingsManager.getKeyMapping(action);
+      const displayName = KEY_DISPLAY_NAMES[action] || action;
+      rowsHtml += `
+        <div class="settings-row">
+          <span class="settings-label">${displayName}</span>
+          <span class="settings-default">${DEFAULT_KEY_MAPPINGS[action]}</span>
+          <input type="text" class="settings-override" data-action="${action}" value="${currentKey}" maxlength="20" placeholder="Override">
+        </div>
+      `;
+    }
+
+    const currentVolume = Math.round((this.settingsManager.getVolume() || 0.5) * 100);
+    const content = `
+    <div class="settings-wrapper">
+      <div class="settings-content">
+        <div class="settings-section">
+          <div class="settings-section-title">Volume</div>
+          <div class="settings-volume">
+            <input type="range" class="settings-volume-slider" min="0" max="100" value="${currentVolume}">
+            <span class="settings-volume-value">${currentVolume}%</span>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Key Bindings</div>
+          <p class="settings-instructions">Customize key bindings. Leave override empty to use defaults. Press Backspace to reset.</p>
+          ${rowsHtml}
+        </div>
+        <div class="settings-buttons">
+          <button class="settings-reset">Reset to Defaults</button>
+          <div class="settings-actions">
+            <button class="settings-cancel">Cancel</button>
+            <button class="settings-save">Save</button>
+          </div>
+        </div>
+      </div>
+      </div>
+    `;
+
+    this.settingsDialog = createModal(content, { title: 'Settings' });
+
+    const dialog = this.settingsDialog;
+    const self = this;
+
+    const inputs = dialog.findAll('.settings-override');
+    for (const input of inputs) {
+      input.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.code === 'Backspace') {
+          const action = e.target.getAttribute('data-action');
+          e.target.value = DEFAULT_KEY_MAPPINGS[action] || '';
+          return;
+        }
+        
+        let key = e.code;
+        if (key.startsWith('Key')) {
+          key = key.substring(3);
+        } else if (key === 'Space') {
+          key = 'Space';
+        } else if (key.startsWith('Digit')) {
+          key = key.substring(5);
+        }
+        e.target.value = key;
+      });
+      input.addEventListener('keyup', (e) => {
+        e.preventDefault();
+      });
+    }
+
+    dialog.find('.settings-cancel').addEventListener('click', () => {
+      dialog.close();
+      self.settingsDialog = null;
+    });
+
+    dialog.find('.settings-reset').addEventListener('click', () => {
+      self.settingsManager.reset();
+      for (const action of actions) {
+        const input = dialog.find(`input[data-action="${action}"]`);
+        input.value = DEFAULT_KEY_MAPPINGS[action];
+      }
+      const volumeSlider = dialog.find('.settings-volume-slider');
+      volumeSlider.value = Math.round((self.settingsManager.getVolume() || 0.5) * 100);
+      dialog.find('.settings-volume-value').textContent = volumeSlider.value + '%';
+    });
+
+    const volumeSlider = dialog.find('.settings-volume-slider');
+    const volumeValue = dialog.find('.settings-volume-value');
+    volumeSlider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value) / 100;
+      self.settingsManager.setVolume(value);
+      volumeValue.innerHTML = Math.round(value * 100) + '%';
+      if (self.soundkit) {
+        self.soundkit.setVolume(value);
+      }
+    });
+
+    dialog.find('.settings-save').addEventListener('click', () => {
+      const newMappings = {};
+      const usedKeys = new Map();
+
+      for (const action of actions) {
+        const input = dialog.find(`input[data-action="${action}"]`);
+        let key = input.value.trim();
+        if (!key) {
+          key = DEFAULT_KEY_MAPPINGS[action];
+        }
+        newMappings[action] = key;
+      }
+
+      for (const action of actions) {
+        const key = newMappings[action];
+        const normalizedKey = key.toLowerCase();
+        
+        if (usedKeys.has(normalizedKey)) {
+          const prevAction = usedKeys.get(normalizedKey);
+          newMappings[prevAction] = DEFAULT_KEY_MAPPINGS[prevAction];
+          const prevInput = dialog.find(`input[data-action="${prevAction}"]`);
+          prevInput.value = DEFAULT_KEY_MAPPINGS[prevAction];
+        } else {
+          usedKeys.set(normalizedKey, action);
+        }
+      }
+
+      for (const [action, key] of Object.entries(newMappings)) {
+        self.settingsManager.setKeyMapping(action, key);
+      }
+      self.settingsManager.save();
+      dialog.close();
+      self.settingsDialog = null;
+    });
   }
 }
 BoloClientWorld.initClass();

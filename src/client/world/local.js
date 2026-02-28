@@ -59,6 +59,7 @@ class BoloLocalWorld extends NetLocalWorld {
   //### Input handlers.
 
   handleKeydown(e) {
+    e.preventDefault();
     switch (e.which) {
       case 32: return this.player.shooting = true;
       case 37: return this.player.turningCounterClockwise = true;

@@ -12,6 +12,7 @@ const $ = require('../dom');
 class SoundKit {
   constructor() {
     this.sounds = {};
+    this.volume = 0.5;
 
     // FIXME: Probably want to switch to has.js at some point.
     this.isSupported = false;
@@ -19,6 +20,14 @@ class SoundKit {
       const dummy = new Audio();
       this.isSupported = (dummy.canPlayType != null);
     }
+  }
+
+  setVolume(value) {
+    this.volume = value;
+  }
+
+  getVolume() {
+    return this.volume;
   }
 
   // Register the effect at the given url with the given name, and build a helper method
@@ -57,6 +66,7 @@ class SoundKit {
     }
     // Clone the audio to allow overlapping sounds
     const sound = this._audioCache[name].cloneNode();
+    sound.volume = this.volume;
     sound.play();
     return sound;
   }

@@ -283,7 +283,28 @@ class BaseRenderer {
     this.initHudBases();
     this.initHudToolSelect();
     this.initHudNotices();
+    this.initSettingsButton();
     return this.updateHud();
+  }
+
+  initSettingsButton() {
+    const btn = $.create('button', { id: 'settings-btn' });
+    btn.innerHTML = '⚙';
+    btn.style.position = 'absolute';
+    btn.style.top = '8px';
+    btn.style.right = '8px';
+    btn.style.background = 'transparent';
+    btn.style.border = 'none';
+    btn.style.color = '#c0c0f0';
+    btn.style.fontSize = '24px';
+    btn.style.cursor = 'pointer';
+    btn.style.zIndex = '100';
+    this.hud.appendChild(btn);
+    btn.addEventListener('click', () => {
+      if (this.world.showSettings) {
+        this.world.showSettings();
+      }
+    });
   }
 
   initHudTankStatus() {
