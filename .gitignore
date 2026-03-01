@@ -4,5 +4,5 @@
 *.gz
 /*.json
 !/package.json
-/maps/**
+# /maps/**
 .DS_Store

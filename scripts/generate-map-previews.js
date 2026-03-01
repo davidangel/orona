@@ -6,10 +6,26 @@ const { Map } = require('../src/map');
 const MAP_SIZE = 256;
 const TILE_SIZE = 32;
 const WATER_TYPES = ['^', ' ', 'b'];
-const TARGET_SIZE = 1024;
+const TARGET_SIZE = 512;
 
-const mapsDir = path.join(__dirname, '..', 'maps');
-const tilesetPath = path.join(__dirname, '..', 'images', 'base.png');
+const args = process.argv.slice(2);
+const mapsDir = args[0] ? path.resolve(args[0]) : path.join(__dirname, '..', 'maps');
+const tilesetPath = args[1] ? path.resolve(args[1]) : path.join(__dirname, '..', 'images', 'base.png');
+
+if (!fs.existsSync(mapsDir)) {
+  console.error(`Error: Maps directory not found: ${mapsDir}`);
+  console.error(`Usage: node generate-map-previews.js [mapsDir] [tilesetPath]`);
+  process.exit(1);
+}
+
+if (!fs.existsSync(tilesetPath)) {
+  console.error(`Error: Tileset not found: ${tilesetPath}`);
+  console.error(`Usage: node generate-map-previews.js [mapsDir] [tilesetPath]`);
+  process.exit(1);
+}
+
+console.log(`Maps directory: ${mapsDir}`);
+console.log(`Tileset: ${tilesetPath}`);
 
 const mapFiles = fs.readdirSync(mapsDir)
   .filter(f => f.endsWith('.map') || f.endsWith('.bmp'))
