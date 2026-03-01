@@ -5,3 +5,4 @@
 /*.json
 !/package.json
 /maps/**
+.DS_Store
