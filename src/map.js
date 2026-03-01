@@ -766,12 +766,18 @@ class Map {
     })();
 
     // Read map data.
-    while (true) {
-      var [dataLen, y, sx, ex] = Array.from(readBytes(4, "Incomplete map data"));
+    let maxIterations = 1000;
+    let reachedEnd = false;
+    while (maxIterations-- > 0) {
+      var bytes = readBytes(4, "Incomplete map data");
+      if (bytes.length < 4) { reachedEnd = true; break; }
+      var [dataLen, y, sx, ex] = bytes;
       dataLen -= 4;
       if ((dataLen === 0) && (y === 0xFF) && (sx === 0xFF) && (ex === 0xFF)) { break; }
+      if (dataLen < 0) { reachedEnd = true; break; }
 
       var run = readBytes(dataLen, "Incomplete map data");
+      if (run.length < dataLen) { reachedEnd = true; break; }
       var runPos = 0;
       var takeNibble = function() {
         const index = floor(runPos);
@@ -800,6 +806,7 @@ class Map {
         }
       }
     }
+    if (maxIterations <= 0) { console.warn("Map data parsing exceeded maximum iterations"); }
 
     // Instantiate the map objects. Late, so they can do postprocessing on the map.
     map.pills  = (() => {

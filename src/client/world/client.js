@@ -45,6 +45,7 @@ function createModal(content, options = {}) {
       get 0() { return null; }
     };
     return {
+      _el: el,
       focus: () => { el.focus(); return wrap(el); },
       keydown: (fn) => { el.addEventListener('keydown', fn); return wrap(el); },
       click: (fn) => { el.addEventListener('click', fn); return wrap(el); },
@@ -114,14 +115,33 @@ const JOIN_DIALOG_TEMPLATE = `
 
 const LAUNCH_TEMPLATE = `
 <div>
-  <p class="text-gray-300 mb-4">Create a new game, or join with a game code.</p>
+  <p class="text-gray-300 mb-4">Create a new game:</p>
+  <div id="map-selector" class="mb-6">
+    <label class="block text-gray-400 text-sm mb-2">Select Map:</label>
+    <div class="flex gap-3 items-start mb-4">
+      <select id="map-select" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500">
+        <option value="">Loading maps...</option>
+      </select>
+      <div id="map-preview" class="map-preview w-32 h-32 rounded border border-gray-600 bg-gray-900 flex items-center justify-center overflow-hidden"></div>
+    </div>
+    <button id="create-game-submit" class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors">Create Game</button>
+  </div>
+
+  <div class="relative my-6">
+    <div class="absolute inset-0 flex items-center">
+      <div class="w-full border-t border-gray-700"></div>
+    </div>
+    <div class="relative flex justify-center text-sm">
+      <span class="px-3 bg-gray-800 text-gray-500">or</span>
+    </div>
+  </div>
+
+  <p class="text-gray-300 mb-3 font-medium">Join with game code:</p>
   <input type="text" id="join-code-field" name="join-code-field" 
          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500" 
          maxlength=6 placeholder="e.g. a3f1c9"></input>
-  <div class="flex gap-3">
-    <button id="join-code-submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors">Join</button>
-    <button id="create-game-submit" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors">Create Game</button>
-  </div>
+  <button id="join-code-submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors mb-4">Join Game</button>
+  
 </div>`;
 
 
@@ -173,6 +193,79 @@ class BoloClientWorld extends ClientWorld {
     this.launchDialog.find('#join-code-field').keydown(e => { if (e.which === 13) { this.launchJoin(); } });
     this.launchDialog.find('#join-code-submit').click(() => { return this.launchJoin(); });
     this.launchDialog.find('#create-game-submit').click(() => { return this.launchCreate(); });
+    
+    // Load maps list
+    this.loadMapsList();
+  }
+  
+  async loadMapsList() {
+    try {
+      const res = await fetch('/api/maps');
+      const maps = await res.json();
+      const select = this.launchDialog.find('#map-select')._el;
+      if (!select) return;
+      select.innerHTML = '';
+      
+      for (const map of maps) {
+        const opt = document.createElement('option');
+        opt.value = map.name;
+        opt.textContent = map.name;
+        select.appendChild(opt);
+      }
+      
+      // Set up preview update on change
+      select.addEventListener('change', (e) => {
+        this.updateMapPreview(e.target.value);
+      });
+      
+      // Default to Everard Island or first map
+      const defaultMap = maps.find(m => m.name === 'Everard Island') || maps[0];
+      if (defaultMap) {
+        select.value = defaultMap.name;
+        this.updateMapPreview(defaultMap.name);
+      }
+    } catch (e) {
+      console.error('Failed to load maps:', e);
+    }
+  }
+  
+  updateMapPreview(mapName) {
+    const preview = this.launchDialog.find('#map-preview')._el;
+    if (!preview) return;
+    
+    // Convert map name to preview filename
+    const previewName = mapName.replace(/\.map$/, '') + '.jpg';
+    
+    // Create image element
+    const img = document.createElement('img');
+    img.src = '/maps/' + previewName;
+    img.alt = mapName;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    img.onerror = function() { 
+      preview.innerHTML = '<span class="text-gray-500 text-xs">no preview</span>'; 
+    };
+    
+    preview.innerHTML = '';
+    preview.appendChild(img);
+    
+    // Add click to open full preview dialog
+    preview.style.cursor = 'pointer';
+    preview.onclick = () => {
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8';
+      overlay.onclick = () => overlay.remove();
+      
+      const fullImg = document.createElement('img');
+      fullImg.src = '/maps/' + previewName;
+      fullImg.alt = mapName;
+      fullImg.className = 'max-w-full max-h-full object-contain rounded-lg shadow-2xl';
+      fullImg.onerror = () => {
+        overlay.innerHTML = '<span class="text-gray-500 text-xl">no preview</span>';
+      };
+      
+      overlay.appendChild(fullImg);
+      document.body.appendChild(overlay);
+    };
   }
 
   launchJoin() {
@@ -185,7 +278,10 @@ class BoloClientWorld extends ClientWorld {
   launchCreate() {
     this.vignette.message('Creating game...');
     // Call server /create endpoint to create a game and receive gid.
-    return fetch('/create').then(res => res.json()).then(data => {
+    const mapSelect = this.launchDialog.find('#map-select');
+    const mapName = mapSelect ? mapSelect.value : '';
+    const url = mapName ? `/create?map=${encodeURIComponent(mapName)}` : '/create';
+    return fetch(url).then(res => res.json()).then(data => {
       if (data && data.gid) { location.search = `?${data.gid}`; }
       else { this.vignette.message('Create failed'); }
     }).catch(() => { return this.vignette.message('Create failed'); });
@@ -282,6 +378,40 @@ class BoloClientWorld extends ClientWorld {
   // Send the heartbeat (an empty message) every 10 ticks / 400ms.
   tick() {
     super.tick(...arguments);
+
+    if (this.gameOver) return;
+
+    if (this.map.bases.length > 0) {
+      let redBases = 0, blueBases = 0, neutralBases = 0;
+      for (const base of this.map.bases) {
+        if (base.team === 0) redBases++;
+        else if (base.team === 1) blueBases++;
+        else neutralBases++;
+      }
+      
+      const isWinCondition = neutralBases === 0 && redBases > 0 && blueBases === 0;
+      const isBlueWinCondition = neutralBases === 0 && blueBases > 0 && redBases === 0;
+      
+      if (isWinCondition) {
+        if (!this.gameOverTimer) {
+          this.gameOverTimer = 50;
+        }
+        if (--this.gameOverTimer === 0) {
+          this.showGameOverDialog('red');
+        }
+      } else if (isBlueWinCondition) {
+        if (!this.gameOverTimer) {
+          this.gameOverTimer = 50;
+        }
+        if (--this.gameOverTimer === 0) {
+          this.showGameOverDialog('blue');
+        }
+      } else {
+        this.gameOverTimer = null;
+      }
+    } else {
+      this.gameOverTimer = null;
+    }
 
     if (this.increasingRange !== this.decreasingRange) {
       if (++this.rangeAdjustTimer === 6) {
@@ -725,6 +855,89 @@ class BoloClientWorld extends ClientWorld {
       dialog.close();
       self.settingsDialog = null;
     });
+  }
+
+  showGameOverDialog(winner) {
+    this.gameOver = true;
+    
+    const color = winner === 'red' ? '#dc2626' : '#2563eb';
+    const teamName = winner === 'red' ? 'Red' : 'Blue';
+    
+    const overlay = $.create('div', { 
+      class: 'fixed inset-0 z-50 flex items-center justify-center',
+      style: 'background: rgba(0,0,0,0.8);'
+    });
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'bg-gray-800 rounded-lg shadow-2xl p-8 text-center border-4';
+    dialog.style.borderColor = color;
+    dialog.innerHTML = `
+      <h2 class="text-4xl font-bold mb-4" style="color: ${color}">${teamName} Wins!</h2>
+      <p class="text-gray-300 mb-6">All bases are under ${teamName} team control</p>
+      <a href="/" class="inline-block px-6 py-3 rounded font-medium transition-colors" 
+         style="background: ${color}; color: white;">Create New Game</a>
+    `;
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    this.startConfetti(winner);
+  }
+
+  startConfetti(team) {
+    const color = team === 'red' ? '#dc2626' : '#2563eb';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'confetti-canvas';
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;';
+    document.body.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const particles = [];
+    const particleCount = 150;
+    
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        size: Math.random() * 8 + 4,
+        speedY: Math.random() * 3 + 2,
+        speedX: Math.random() * 4 - 2,
+        rotation: Math.random() * 360,
+        rotationSpeed: Math.random() * 10 - 5,
+        color: Math.random() > 0.5 ? color : '#ffffff'
+      });
+    }
+    
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (const p of particles) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+        
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotationSpeed;
+        
+        if (p.y > canvas.height) {
+          p.y = -20;
+          p.x = Math.random() * canvas.width;
+        }
+      }
+      
+      if (this.gameOver) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
   }
 }
 BoloClientWorld.initClass();

@@ -390,13 +390,37 @@ class Application {
       }
       this.connectServer.use('/', redirector(this.options.general.base));
 
+      // Endpoint to get list of available maps
+      this.connectServer.use('/api/maps', (req, res, next) => {
+        if (req.method !== 'GET') { return next(); }
+        const names = Object.getOwnPropertyNames(this.maps.nameIndex);
+        const maps = names.map(name => {
+          const descr = this.maps.nameIndex[name];
+          return { name, path: descr.path };
+        });
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify(maps));
+      });
+
       // Endpoint to create a new game and return its id. Simple GET used by the client UI.
       this.connectServer.use('/create', (req, res, next) => {
         if (req.method !== 'GET') { return next(); }
+        
+        // Parse query string manually
+        const url = new URL(req.url, 'http://localhost');
+        const mapName = url.searchParams.get('map');
+        
         // Pick the first available map (fallback to demo map if available)
         const names = Object.getOwnPropertyNames(this.maps.nameIndex);
         let mapDescr = null;
-        mapDescr = this.maps.get('Everard Island');
+        
+        if (mapName && this.maps.get(mapName)) {
+          mapDescr = this.maps.get(mapName);
+        }
+        
+        if (!mapDescr) {
+          mapDescr = this.maps.get('Oil Rigette') || this.maps.get('Everard Island');
+        }
         if (!mapDescr && names.length > 0) { mapDescr = this.maps.nameIndex[names[0]]; }
         if (!mapDescr && this.demo) {
           // If we have a demo, use its map
