@@ -139,7 +139,7 @@ const LAUNCH_TEMPLATE = `
   <p class="text-gray-300 mb-3 font-medium">Join with game code:</p>
   <input type="text" id="join-code-field" name="join-code-field" 
          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white mb-4 focus:outline-none focus:border-blue-500" 
-         maxlength=6 placeholder="e.g. a3f1c9"></input>
+         placeholder="e.g. happy-pizza-tiger"></input>
   <button id="join-code-submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors mb-4">Join Game</button>
   
 </div>`;
@@ -173,9 +173,9 @@ class BoloClientWorld extends ClientWorld {
       this.soundkit.setVolume(this.settingsManager.getVolume());
     }
 
-    // If a 6-digit hex id is present in the querystring, connect to that match.
-    if (m = /^\?([0-9a-f]{6})$/.exec(location.search)) {
-      path = `/match/${m[1]}`;
+    // If a silly word code is present in the querystring, connect to that match.
+    if (m = /^\?([a-z]+-[a-z]+-[a-z]+)$/i.exec(location.search)) {
+      path = `/${m[1]}`;
       const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       this.ws = new WebSocket(`${wsProtocol}//${location.host}${path}`);
       this.ws.addEventListener('open', () => { return this.connected(); });
@@ -184,7 +184,7 @@ class BoloClientWorld extends ClientWorld {
     }
 
     // If an invalid querystring exists, show message.
-    if (location.search) { return this.vignette.message('Invalid game ID'); }
+    if (location.search) { return this.vignette.message('Invalid game code'); }
 
     // Otherwise present a launch dialog allowing create/join by code.
     this.vignette.message('Choose Create or Join');
@@ -269,8 +269,8 @@ class BoloClientWorld extends ClientWorld {
   }
 
   launchJoin() {
-    const code = (this.launchDialog.find('#join-code-field').val() || '').toLowerCase();
-    if (!/^[0-9a-f]{6}$/.test(code)) { return this.vignette.message('Invalid code'); }
+    const code = (this.launchDialog.find('#join-code-field').val() || '').toLowerCase().trim();
+    if (!/^[a-z]+-[a-z]+-[a-z]+$/.test(code)) { return this.vignette.message('Invalid code'); }
     // Navigate to the game query param; reload will trigger the websocket connect.
     return location.search = `?${code}`;
   }

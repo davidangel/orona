@@ -481,11 +481,26 @@ class Application {
   }
 
   createGameId() {
-    // Generate a 6-digit lowercase hex id (e.g. 'a3f1c9') that's unique among games.
+    // Generate a silly word-based id (e.g. 'funny-bunny-jump') that's unique among games.
+    const words = [
+      'apple', 'banana', 'carrot', 'donut', 'elephant', 'flower', 'grape', 'happy',
+      'igloo', 'jelly', 'kite', 'lemon', 'mango', 'noodle', 'orange', 'pizza',
+      'quack', 'rainbow', 'snack', 'tiger', 'umbrella', 'violet', 'watermelon', 'xylophone',
+      'yellow', 'zebra', 'bubble', 'cookie', 'doodle', 'egg', 'fuzzle', 'giggle',
+      'hummus', 'jigsaw', 'kangaroo', 'lollipop', 'muffin', 'ninja', 'oyster', 'panda',
+      'quilt', 'raccoon', 'salsa', 'tofu', 'unicorn', 'voxel', 'waffle', 'xenon',
+      'yogurt', 'zippy', 'anchor', 'boulder', 'cactus', 'dragon', 'echo', 'falcon',
+      'glacier', 'harbor', 'island', 'jungle', 'kindle', 'lagoon', 'meadow', 'nebula',
+      'oasis', 'pyramid', 'quicksand', 'reef', 'spectrum', 'tornado', 'utopia', 'vortex',
+      'waterfall', 'xeric', 'yonder', 'zenith', 'cloud', 'dune', 'fern', 'geyser',
+      'hill', 'iceberg', 'jay', 'koala', 'lake', 'meow', 'nest', 'owl',
+      'pear', 'quill', 'rose', 'sea', 'tree', 'ufo', 'valley', 'wolf',
+      'xray', 'yarn', 'zinc', 'avocado', 'broccoli', 'cucumber', 'daikon', 'edamame'
+    ];
+    
     let gid;
-    const charset = '0123456789abcdef';
     while (true) {
-      gid = Array.from({length: 6}).map(() => charset.charAt(round(random() * (charset.length - 1)))).join('');
+      gid = Array.from({length: 3}).map(() => words[Math.floor(Math.random() * words.length)]).join('-');
       if (!this.games.hasOwnProperty(gid)) { break; }
     }
     return gid;
@@ -578,8 +593,14 @@ class Application {
     let m;
     if (path === '/lobby') { return false;
 
-    // FIXME: Match joining based on a UUID.
-    } else if ((m = /^\/match\/([0-9a-f]{6})$/.exec(path))) {
+    // FIXME: Match joining based on a silly word code (e.g., /happy-pizza-tiger).
+    } else if ((m = /^\/match\/([a-z]+-[a-z]+-[a-z]+)$/.exec(path))) {
+      if (this.games.hasOwnProperty(m[1])) {
+        return ws => this.games[m[1]].onConnect(ws);
+      } else {
+        return false;
+      }
+    } else if ((m = /^\/([a-z]+-[a-z]+-[a-z]+)$/.exec(path))) {
       if (this.games.hasOwnProperty(m[1])) {
         return ws => this.games[m[1]].onConnect(ws);
       } else {
@@ -608,10 +629,12 @@ class Application {
 
 //# Entry point
 
-// Helper middleware to redirect from '/match/*'.
+// Helper middleware to redirect from '/match/*' or '/code' to '?code'.
 var redirector = base => (function(req, res, next) {
   let m, query;
-  if (m = /^\/match\/([0-9a-f]{6})$/.exec(req.url)) {
+  if (m = /^\/match\/([a-z]+-[a-z]+-[a-z]+)$/.exec(req.url)) {
+    query = `?${m[1]}`;
+  } else if (m = /^\/([a-z]+-[a-z]+-[a-z]+)$/.exec(req.url)) {
     query = `?${m[1]}`;
   } else {
     return next();
