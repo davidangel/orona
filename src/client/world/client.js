@@ -759,6 +759,7 @@ class BoloClientWorld extends ClientWorld {
           </div>
         </div>
       </div>
+      <div class="pt-8 pb-4 mx-auto color-white text-center"><a href="https://github.com/davidangel/bolo" class="text-gray-400 hover:text-gray-300" target="_blank">★ Bolo on GitHub</a></div>
       </div>
     `;
 
